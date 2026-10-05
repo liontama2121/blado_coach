@@ -1,0 +1,40 @@
+---
+interface Props {
+  active: "rutina" | "alimentacion" | "agenda";
+}
+const { active } = Astro.props;
+const tabs = [
+  { id: "rutina", href: "/app/plan", label: "Rutina" },
+  { id: "alimentacion", href: "/app/plan/alimentacion", label: "Alimentación" },
+  { id: "agenda", href: "/app/plan/agenda", label: "Agenda" },
+] as const;
+---
+
+<nav class="plan-tabs" aria-label="Secciones del plan">
+  {tabs.map((t) => <a href={t.href} aria-current={t.id === active ? "page" : undefined}>{t.label}</a>)}
+</nav>
+
+<style>
+  .plan-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+  }
+  .plan-tabs a {
+    display: grid;
+    place-items: center;
+    min-height: 42px;
+    border-radius: 999px;
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: none;
+  }
+  .plan-tabs a[aria-current="page"] {
+    background: var(--lime);
+    color: #0d0d0d;
+  }
+</style>

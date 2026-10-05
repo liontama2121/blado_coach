@@ -1,0 +1,41 @@
+---
+/**
+ * Circular goal stamp: lime hairline ring with circular text and an arc
+ * showing how far the student is in the current block (e.g. week 8 of 12).
+ */
+interface Props {
+  week: number;
+  of: number;
+  label?: string;
+  size?: number;
+}
+const { week, of, label = "Meta", size = 104 } = Astro.props;
+const r = 30;
+const circumference = 2 * Math.PI * r;
+const progress = Math.min(Math.max(week / of, 0), 1);
+const id = `stamp-${week}-${of}`;
+const ring = `${label} · semana ${of} · ${label} · semana ${of} · `.toUpperCase();
+---
+
+<svg width={size} height={size} viewBox="0 0 100 100" role="img" aria-label={`${label}: semana ${week} de ${of}`} class="shrink-0 text-lime">
+  <defs>
+    <path id={id} d="M50,50 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0"></path>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="none" stroke="currentColor" stroke-width="0.75"></circle>
+  <text font-size="7.4" letter-spacing="1.6" fill="currentColor" font-family="var(--font-mono)">
+    <textPath href={`#${id}`}>{ring}</textPath>
+  </text>
+  <circle cx="50" cy="50" r={r} fill="none" stroke="#262a26" stroke-width="4"></circle>
+  <circle
+    cx="50"
+    cy="50"
+    r={r}
+    fill="none"
+    stroke="currentColor"
+    stroke-width="4"
+    stroke-dasharray={`${circumference * progress} ${circumference}`}
+    transform="rotate(-90 50 50)"></circle>
+  <text x="50" y="55" text-anchor="middle" font-size="15" font-weight="900" fill="#edefea" font-family="var(--font-display)" class="tnum">
+    {week}/{of}
+  </text>
+</svg>

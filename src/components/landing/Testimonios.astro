@@ -1,0 +1,40 @@
+---
+import { testimonials } from "@/content/testimonials";
+// Real, authorized testimonials only (see src/content/testimonials.ts).
+// With an empty list the section is not rendered in production.
+const show = testimonials.length > 0;
+const dev = import.meta.env.DEV;
+---
+
+{
+  show ? (
+    <section id="resultados" class="border-t border-line bg-ink py-24 md:py-32" aria-labelledby="test-title">
+      <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+        <h2 id="test-title" class="display text-[clamp(3rem,7vw,6rem)] text-bone">
+          Lo dicen <span class="text-lime">ellos.</span>
+        </h2>
+        <ul class="mt-14 grid gap-px bg-line md:grid-cols-2">
+          {testimonials.slice(0, 4).map((t) => (
+            <li class="grid content-between gap-8 bg-ink p-6 md:p-10">
+              <blockquote class="text-xl leading-relaxed text-bone">“{t.quote}”</blockquote>
+              <p class="text-sm text-mute-2">
+                <span class="font-semibold text-bone">{t.name}</span>
+                <br />
+                {t.detail}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  ) : (
+    dev && (
+      <section class="mx-auto my-8 max-w-[1400px] px-4 md:px-8" aria-label="Aviso de desarrollo">
+        <div class="border border-dashed border-lime/50 p-6 font-mono text-sm leading-relaxed text-mute-2">
+          Sección de testimonios oculta: no hay testimonios cargados. Agrega testimonios reales y autorizados en src/content/testimonials.ts.
+          Este aviso solo se ve en desarrollo.
+        </div>
+      </section>
+    )
+  )
+}

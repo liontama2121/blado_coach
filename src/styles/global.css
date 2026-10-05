@@ -2,50 +2,75 @@
 
 /*
  * Blado design tokens: direction "Negro Lima".
- * The landing is graphite with lime used only for action, the key word and the band.
+ * The landing is graphite; lime is spent only on action, the key word and the band.
  * The panel (/coach, /app) uses the light "paper" surface for data legibility.
  */
 @theme {
   --color-ink: #0d0e0d;
-  --color-graphite: #161816;
-  --color-line: #232623;
+  --color-graphite: #141614;
+  --color-graphite-2: #1b1e1b;
+  --color-line: #262a26;
   --color-bone: #edefea;
   --color-mute: #5b615c;
   --color-mute-2: #a9aea8;
   --color-lime: #c8ff1a;
-  --color-lime-ink: #0d0e0d;
+  --color-lime-dim: #a8d80f;
   --color-paper: #f2f3f0;
   --color-card: #ffffff;
 
   --color-ok: #2f8f4e;
   --color-warn: #b7791f;
-  --color-alert: #c2410c;
+  --color-alert: #e5532d;
 
-  --font-display: "Sofia Sans Extra Condensed", "Arial Narrow", system-ui, sans-serif;
-  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, Consolas, monospace;
+  --font-display: "Sofia Sans Extra Condensed", "Arial Narrow", sans-serif;
+  --font-sans: "Geist Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, Consolas, monospace;
 
-  --radius-none: 0;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 5rem;
   }
   body {
     @apply font-sans antialiased;
+    font-feature-settings: "ss01";
   }
   h1,
   h2,
   h3 {
     text-wrap: balance;
   }
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
   :focus-visible {
     outline: 2px solid var(--color-lime);
     outline-offset: 3px;
   }
+  [data-theme="light"] :focus-visible {
+    outline-color: var(--color-ink);
+  }
+  a {
+    text-underline-offset: 0.2em;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    scrollbar-color: #3a3f3a var(--color-ink);
+  }
+  input,
+  select,
+  textarea {
+    caret-color: var(--color-lime);
+  }
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
     *,
     *::before,
     *::after {
@@ -53,5 +78,52 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+@layer components {
+  .display {
+    font-family: var(--font-display);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.92;
+    letter-spacing: -0.005em;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.95rem 1.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    transition:
+      transform 0.25s var(--ease-out-expo),
+      background-color 0.25s var(--ease-out-expo),
+      color 0.25s var(--ease-out-expo),
+      border-color 0.25s var(--ease-out-expo);
+  }
+  .btn:active {
+    transform: scale(0.98);
+  }
+  .btn-lime {
+    background: var(--color-lime);
+    color: var(--color-ink);
+  }
+  .btn-lime:hover {
+    background: var(--color-bone);
+  }
+  .btn-ghost {
+    border: 1px solid #3a3f3a;
+    color: var(--color-bone);
+  }
+  .btn-ghost:hover {
+    border-color: var(--color-lime);
+    color: var(--color-lime);
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
   }
 }

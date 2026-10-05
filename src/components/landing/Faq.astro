@@ -1,0 +1,31 @@
+---
+import Icon from "@/components/Icon.astro";
+import { faqs } from "@/content/landing";
+---
+
+<section id="preguntas" class="bg-graphite py-24 md:py-32" aria-labelledby="faq-title">
+  <div class="mx-auto grid max-w-[1400px] gap-12 px-4 md:grid-cols-12 md:px-8">
+    <h2 id="faq-title" class="display text-[clamp(3rem,7vw,6rem)] text-bone md:col-span-4">Preguntas frecuentes</h2>
+    <div class="md:col-span-7 md:col-start-6">
+      {
+        faqs.map((f) => (
+          <details class="faq group border-b border-line">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-6 py-6 text-lg font-medium text-bone transition-colors hover:text-lime">
+              {f.q}
+              <span class="shrink-0 text-lime transition-transform duration-300 group-open:rotate-45">
+                <Icon name="plus" size={22} />
+              </span>
+            </summary>
+            <p class="max-w-[60ch] pb-6 leading-relaxed text-mute-2">{f.a}</p>
+          </details>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq summary::-webkit-details-marker {
+    display: none;
+  }
+</style>

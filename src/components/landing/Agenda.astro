@@ -1,0 +1,247 @@
+---
+import { site } from "@/config/site";
+---
+
+<section id="agenda" class="border-t border-line bg-ink py-24 md:py-32" aria-labelledby="agenda-title">
+  <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+    <div class="grid gap-6 md:grid-cols-12 md:items-end">
+      <h2 id="agenda-title" class="display text-[clamp(3rem,7vw,6rem)] text-bone md:col-span-7">
+        La semana del coach, <span class="text-lime">en vivo.</span>
+      </h2>
+      <p class="max-w-[46ch] text-lg leading-relaxed text-mute-2 md:col-span-5">
+        Cada cinta lima es un horario libre. Toca uno y me escribes por WhatsApp para apartarlo.
+      </p>
+    </div>
+
+    <div class="agenda mt-14" data-agenda aria-live="polite" aria-busy="true">
+      <!-- Skeleton until data arrives: same shape as the final grid -->
+      <ol class="agenda-grid">
+        {
+          Array.from({ length: 7 }, () => (
+            <li class="agenda-day">
+              <span class="block h-5 w-16 bg-graphite-2" />
+              <span class="mt-4 block h-9 w-full bg-graphite" />
+              <span class="mt-2 block h-9 w-4/5 bg-graphite" />
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+
+    <div class="mt-8 flex flex-wrap items-center justify-between gap-6 border-t border-line pt-6">
+      <ul class="flex flex-wrap gap-6 text-sm text-mute-2" aria-label="Convenciones">
+        <li class="flex items-center gap-2"><span class="tape h-4 w-8" style="--rot:0deg"></span> Libre</li>
+        <li class="flex items-center gap-2"><span class="legend-busy h-4 w-8"></span> Ocupado</li>
+        <li class="flex items-center gap-2"><span class="h-0.5 w-8 bg-alert"></span> Ahora</li>
+      </ul>
+      <p class="max-w-[60ch] text-sm text-mute-2">
+        Solo mostramos si un horario está libre u ocupado. Los estudiantes agendan y confirman sus sesiones desde la app.
+      </p>
+    </div>
+  </div>
+</section>
+
+<template id="agenda-error">
+  <div class="grid gap-4 border border-line p-8">
+    <p class="text-lg text-bone">No pudimos cargar la agenda en este momento.</p>
+    <p class="text-mute-2">Escríbeme por WhatsApp y te digo qué horarios tengo libres.</p>
+  </div>
+</template>
+
+<style is:global>
+  .agenda-grid {
+    display: grid;
+    gap: 1px;
+    background: var(--color-line);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    border: 1px solid var(--color-line);
+  }
+  @media (max-width: 900px) {
+    .agenda-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .agenda-day {
+    position: relative;
+    background: var(--color-ink);
+    padding: 1rem;
+    min-height: 15rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+  @media (max-width: 900px) {
+    .agenda-day {
+      min-height: 0;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .agenda-day .day-head {
+      flex-basis: 100%;
+    }
+  }
+  .agenda-day.is-today {
+    background: var(--color-graphite);
+  }
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+  }
+  .seal {
+    font: 900 0.8rem/1 var(--font-display);
+    letter-spacing: 0.06em;
+    color: var(--color-alert);
+    border: 1.5px solid var(--color-alert);
+    padding: 0.25rem 0.4rem;
+    transform: rotate(-6deg);
+  }
+  .slot-free {
+    padding: 0.5rem 0.75rem;
+    font: 600 0.95rem/1 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    justify-content: space-between;
+    width: 100%;
+  }
+  @media (max-width: 900px) {
+    .slot-free {
+      width: auto;
+    }
+  }
+  .slot-free.is-next {
+    animation: next-pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes next-pulse {
+    50% {
+      box-shadow: 0 0 0 6px rgba(200, 255, 26, 0.16), 0 8px 18px -10px rgba(0, 0, 0, 0.7);
+    }
+  }
+  .slot-busy,
+  .legend-busy {
+    background: repeating-linear-gradient(135deg, #1a1d1a 0 5px, #232723 5px 10px);
+  }
+  .slot-busy,
+  .slot-past {
+    padding: 0.5rem 0.75rem;
+    font: 500 0.9rem/1 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-mute-2);
+  }
+  .slot-past {
+    color: var(--color-mute);
+    text-decoration: line-through;
+  }
+  .now-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font: 500 0.75rem/1 var(--font-mono);
+    color: var(--color-alert);
+    width: 100%;
+  }
+  .now-line::after {
+    content: "";
+    flex: 1;
+    height: 2px;
+    background: var(--color-alert);
+  }
+  .day-empty {
+    font-size: 0.85rem;
+    color: var(--color-mute-2);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slot-free.is-next {
+      animation: none;
+    }
+  }
+</style>
+
+<script define:vars={{ whatsapp: site.contact.whatsapp }}>
+  window.__BLADO_WA__ = whatsapp;
+</script>
+
+<script>
+  import { formatMinute, bogotaParts } from "@/lib/schedule";
+
+  type Slot = { start: number; end: number; state: "free" | "busy" | "past"; location: "gym" | "casa" | "ambos" };
+  type Day = { date: string; weekday: number; slots: Slot[] };
+  type Agenda = { today: string; status: string; nextFree: { date: string; slot: Slot } | null; days: Day[] };
+
+  const DAYS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const WHERE: Record<Slot["location"], string> = { gym: "Gym", casa: "Casa", ambos: "Casa o gym" };
+  const root = document.querySelector<HTMLElement>("[data-agenda]");
+  const wa = (window as unknown as { __BLADO_WA__: string }).__BLADO_WA__;
+
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const ddmm = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+
+  function waLink(day: Day, s: Slot) {
+    const msg = `Hola, me interesa el horario del ${DAYS[day.weekday]!.toLowerCase()} ${ddmm(day.date)} a las ${formatMinute(s.start)} (${WHERE[s.location].toLowerCase()}).`;
+    return `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
+  }
+
+  function render(data: Agenda) {
+    if (!root) return;
+    const nowMin = bogotaParts(new Date()).minute;
+    const html = data.days
+      .map((day, i) => {
+        const isToday = day.date === data.today;
+        let nowPlaced = !isToday;
+        const items: string[] = [];
+        for (const s of day.slots) {
+          if (!nowPlaced && s.start >= nowMin) {
+            items.push(`<span class="now-line">Ahora ${formatMinute(nowMin)}</span>`);
+            nowPlaced = true;
+          }
+          const label = `${formatMinute(s.start)}`;
+          if (s.state === "free") {
+            const isNext = data.nextFree?.date === day.date && data.nextFree.slot.start === s.start;
+            const rot = ((i * 7 + s.start / 60) % 5) - 2; // small, stable variation per slot
+            items.push(
+              `<a class="tape slot-free${isNext ? " is-next" : ""}" style="--rot:${rot * 0.6}deg" href="${waLink(day, s)}" target="_blank" rel="noopener" aria-label="Libre ${DAYS[day.weekday]} ${label}, ${WHERE[s.location]}. Escribir por WhatsApp"><span>${label}</span><span class="text-xs font-medium">${WHERE[s.location]}</span></a>`,
+            );
+          } else if (s.state === "busy") {
+            items.push(`<span class="slot-busy" aria-label="Ocupado ${label}">${label}</span>`);
+          } else {
+            items.push(`<span class="slot-past" aria-label="Ya pasó ${label}">${label}</span>`);
+          }
+        }
+        if (!nowPlaced && day.slots.length) items.push(`<span class="now-line">Ahora ${formatMinute(nowMin)}</span>`);
+        if (!day.slots.length) items.push(`<span class="day-empty">Sin horario</span>`);
+        return `<li class="agenda-day${isToday ? " is-today" : ""}">
+            <div class="day-head">
+              <span class="display text-2xl text-bone">${isToday ? "Hoy" : esc(DAYS[day.weekday]!.slice(0, 3))} <span class="font-sans text-sm font-normal text-mute-2">${ddmm(day.date)}</span></span>
+              ${isToday ? '<span class="seal">HOY</span>' : ""}
+            </div>
+            ${items.join("")}
+          </li>`;
+      })
+      .join("");
+    root.innerHTML = `<ol class="agenda-grid">${html}</ol>`;
+    root.setAttribute("aria-busy", "false");
+    document.dispatchEvent(new CustomEvent("tape:arm", { detail: root }));
+  }
+
+  async function load() {
+    try {
+      const res = await fetch("/api/agenda/semana", { headers: { accept: "application/json" } });
+      if (!res.ok) throw new Error(String(res.status));
+      const data = (await res.json()) as Agenda;
+      render(data);
+      document.dispatchEvent(new CustomEvent("agenda:data", { detail: data }));
+    } catch {
+      if (root && root.getAttribute("aria-busy") === "true") {
+        const tpl = document.getElementById("agenda-error") as HTMLTemplateElement | null;
+        if (tpl) root.replaceChildren(tpl.content.cloneNode(true));
+        root.setAttribute("aria-busy", "false");
+      }
+      document.dispatchEvent(new CustomEvent("agenda:data", { detail: { today: "", status: "error", nextFree: null, days: [] } }));
+    }
+  }
+
+  load();
+  setInterval(load, 60_000);
+</script>

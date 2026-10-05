@@ -1,0 +1,102 @@
+---
+// Dev-only page: style exploration for the "Coach Bladimir" mascot. 404 in production.
+export const prerender = false;
+if (import.meta.env.PROD) return new Response(null, { status: 404 });
+
+import "@fontsource-variable/league-gothic/wdth";
+import Base from "@/layouts/Base.astro";
+import FlatSketch from "@/components/mascota/sketches/FlatSketch.astro";
+import CartoonSketch from "@/components/mascota/sketches/CartoonSketch.astro";
+import PixelSketch from "@/components/mascota/sketches/PixelSketch.astro";
+import lineSvg from "../../../public/brand/bladimir-line.svg?raw";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import { MASCOT_STATES, PHRASES } from "@/components/mascota/states";
+
+const options = [
+  { id: "flat", n: "1", name: "Flat moderno", note: "Formas geométricas limpias, sombras planas, 6 colores. La más limpia y versátil para la app.", C: FlatSketch },
+  { id: "cartoon", n: "2", name: "Cartoon atlético", note: "Cabeza más grande, hombros anchos, contorno grueso. La más expresiva: celebra y motiva con más energía.", C: CartoonSketch },
+  { id: "pixel", n: "3", name: "Pixel art 16-bit", note: "Sprite tipo videojuego con borde blanco de sticker, en la línea de la mascota de JuanCode.", C: PixelSketch },
+];
+---
+
+<Base title="Mascota Bladimir · bocetos" noindex>
+  <main class="mx-auto grid max-w-[1400px] gap-10 px-4 py-14 md:px-8">
+    <header class="grid gap-3">
+      <h1 class="text-[clamp(3rem,7vw,6rem)] uppercase leading-[0.86] text-lime" style="font-family:'League Gothic Variable',sans-serif;font-variation-settings:'wdth' 75">Coach Bladimir</h1>
+      <p class="max-w-[64ch] text-mute-2">
+        Tres estilos para elegir. Son bocetos estáticos de medio cuerpo: pelo ondulado con volumen, barba completa, piel trigueña, muy musculoso,
+        esqueleto camuflado y celular rojo. Faltó la foto de referencia (reference/bladimir.jpg); cuando llegue, ajusto rasgos.
+      </p>
+    </header>
+
+    <section class="grid items-center gap-8 md:grid-cols-2" aria-labelledby="m-line">
+      <div class="line-logo mx-auto aspect-square w-full max-w-[460px] overflow-hidden rounded-3xl" set:html={lineSvg} />
+      <div class="grid gap-3">
+        <h2 id="m-line" class="text-5xl uppercase leading-none text-lime" style="font-family:'League Gothic Variable',sans-serif;font-variation-settings:'wdth' 75">Retrato en línea</h2>
+        <p class="max-w-[52ch] text-mute-2">15 trazos monoline en lima #C6FF00 sobre negro #0D0D0D. Sin rellenos ni sombras. Pelo crespo con espirales, barba completa con bigote, cejas gruesas, nariz de una línea y sonrisa amable. Archivo: /brand/bladimir-line.svg</p>
+        <button type="button" id="redraw" class="w-fit rounded-full bg-lime px-5 py-3 text-sm font-semibold text-ink">Dibujar de nuevo</button>
+      </div>
+    </section>
+    <section class="grid gap-6 rounded-3xl bg-graphite p-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] md:p-10" aria-labelledby="m-states">
+      <div class="grid place-items-center"><Bladimir state="idle" size="min(420px, 80vw)" class="bl-demo" /></div>
+      <div class="grid content-center gap-4">
+        <h2 id="m-states" class="text-5xl uppercase leading-none text-bone" style="font-family:'League Gothic Variable',sans-serif;font-variation-settings:'wdth' 75">13 estados</h2>
+        <p class="text-lg text-bone" data-demo-phrase>Aquí estoy cuando me necesites.</p>
+        <div class="flex flex-wrap gap-2">
+          {MASCOT_STATES.map((st) => <button type="button" data-demo-state={st} data-phrase={PHRASES[st][0]!.text} class="rounded-full border border-line px-4 py-2 text-sm text-bone hover:border-lime aria-pressed:bg-lime aria-pressed:text-ink" aria-pressed={st === "idle" ? "true" : "false"}>{st}</button>)}
+        </div>
+      </div>
+    </section>
+    <h2 class="text-sm text-mute-2">Bocetos anteriores de cuerpo medio (referencia):</h2>
+
+    <div class="grid gap-6 md:grid-cols-3">
+      {
+        options.map((o) => (
+          <section class="grid gap-4" aria-labelledby={`m-${o.id}`}>
+            <div class="grid aspect-[5/6] place-items-center overflow-hidden rounded-3xl bg-graphite p-6">
+              <o.C />
+            </div>
+            <div class="grid gap-2">
+              <h2 id={`m-${o.id}`} class="text-4xl uppercase leading-none text-bone" style="font-family:'League Gothic Variable',sans-serif;font-variation-settings:'wdth' 75">
+                {o.n}. {o.name}
+              </h2>
+              <p class="text-sm leading-relaxed text-mute-2">{o.note}</p>
+            </div>
+          </section>
+        ))
+      }
+    </div>
+
+    <section class="grid gap-4" aria-label="Sobre fondo claro">
+      <h2 class="text-sm text-mute-2">Los mismos bocetos sobre fondo claro (la app tiene modo claro y oscuro):</h2>
+      <div class="grid gap-6 md:grid-cols-3">
+        {options.map((o) => <div class="grid aspect-[5/6] place-items-center rounded-3xl bg-paper p-6"><o.C /></div>)}
+      </div>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .line-logo :global(svg) { width: 100%; height: 100%; display: block; }
+</style>
+
+<script>
+  import { animate, createDrawable, stagger } from "animejs";
+  const paths = document.querySelectorAll<SVGPathElement>(".line-logo path");
+  const draw = () => {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    animate(createDrawable(paths), { draw: ["0 0", "0 1"], duration: 900, delay: stagger(110), ease: "inOutQuad" });
+  };
+  draw();
+  document.getElementById("redraw")?.addEventListener("click", draw);
+
+  const demo = document.querySelector<HTMLElement>(".bl-demo");
+  const phrase = document.querySelector("[data-demo-phrase]");
+  document.querySelectorAll<HTMLButtonElement>("[data-demo-state]").forEach((b, _, all) =>
+    b.addEventListener("click", () => {
+      demo?.dispatchEvent(new CustomEvent("bladimir:state", { detail: b.dataset.demoState }));
+      if (phrase) phrase.textContent = b.dataset.phrase ?? "";
+      all.forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    }),
+  );
+</script>

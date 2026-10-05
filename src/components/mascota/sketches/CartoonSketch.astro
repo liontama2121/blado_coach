@@ -1,0 +1,77 @@
+---
+// Style 2: athletic cartoon. Bigger head, exaggerated V-taper, thick outline, very expressive (double-biceps pose).
+const c = {
+  skin: "#C8895B",
+  skinSh: "#A86C42",
+  hair: "#231912",
+  camo: "#5E6B37",
+  camoDark: "#3C4423",
+  camoBrown: "#7A5532",
+  camoSand: "#C6B88B",
+  phone: "#E3261B",
+  ink: "#17150F",
+  white: "#F4F4F0",
+  lime: "#C8FF1A",
+};
+const s = { stroke: c.ink, "stroke-width": 6, "stroke-linejoin": "round", "stroke-linecap": "round" } as const;
+---
+
+<svg viewBox="0 0 400 480" role="img" aria-label="Boceto cartoon de Bladimir" class="h-full w-full">
+  <defs>
+    <pattern id="cartoon-camo" width="110" height="110" patternUnits="userSpaceOnUse">
+      <rect width="110" height="110" fill={c.camo}></rect>
+      <path d="M6 18 q20 -18 40 0 q10 16 -8 24 q-24 8 -32 -24 z" fill={c.camoDark}></path>
+      <path d="M62 6 q26 -4 32 16 q4 18 -20 18 q-22 -2 -12 -34 z" fill={c.camoBrown}></path>
+      <path d="M52 58 q24 -10 36 8 q8 18 -14 22 q-28 4 -22 -30 z" fill={c.camoSand}></path>
+      <path d="M4 72 q18 -6 28 8 q6 18 -16 18 q-18 -4 -12 -26 z" fill={c.camoBrown}></path>
+    </pattern>
+  </defs>
+
+  <!-- energy lines -->
+  <g stroke={c.lime} stroke-width="6" stroke-linecap="round">
+    <path d="M28 96 L8 82"></path><path d="M24 128 L2 128"></path>
+    <path d="M372 96 L392 82"></path><path d="M376 128 L398 128"></path>
+  </g>
+
+  <!-- arms: double biceps, fists beside the head -->
+  <g {...s} fill={c.skin}>
+    <path d="M120 262 Q70 270 52 236 Q40 210 60 196 L78 150 Q60 130 74 114 Q96 98 114 116 Q122 134 108 154 L98 200 Q130 196 150 230 Z"></path>
+    <path d="M280 262 Q330 270 348 236 Q360 210 340 196 L322 150 Q340 130 326 114 Q304 98 286 116 Q278 134 292 154 L302 200 Q270 196 250 230 Z"></path>
+  </g>
+  <!-- biceps peaks -->
+  <path d="M66 214 Q76 186 100 194" fill="none" stroke={c.skinSh} stroke-width="6" stroke-linecap="round"></path>
+  <path d="M334 214 Q324 186 300 194" fill="none" stroke={c.skinSh} stroke-width="6" stroke-linecap="round"></path>
+
+  <!-- V-taper torso, camo tank -->
+  <path {...s} d="M98 258 Q130 222 166 226 Q200 276 234 226 Q270 222 302 258 L262 480 L138 480 Z" fill="url(#cartoon-camo)"></path>
+  <!-- traps -->
+  <path {...s} d="M156 214 Q118 220 104 250 Q140 232 168 232 Z" fill={c.skin}></path>
+  <path {...s} d="M244 214 Q282 220 296 250 Q260 232 232 232 Z" fill={c.skin}></path>
+  <!-- neck -->
+  <path {...s} d="M168 198 L232 198 L236 236 Q200 262 164 236 Z" fill={c.skinSh}></path>
+  <!-- phone peeking from the waistband -->
+  <g transform="rotate(14 250 440)">
+    <rect {...s} x="232" y="410" width="36" height="58" rx="7" fill={c.phone}></rect>
+  </g>
+
+  <!-- big head -->
+  <ellipse {...s} cx="122" cy="140" rx="14" ry="20" fill={c.skinSh}></ellipse>
+  <ellipse {...s} cx="278" cy="140" rx="14" ry="20" fill={c.skinSh}></ellipse>
+  <path {...s} d="M126 132 Q124 54 200 52 Q276 54 274 132 Q274 222 200 228 Q126 222 126 132 Z" fill={c.skin}></path>
+  <!-- hair: wavy volume, faded sides -->
+  <path {...s} d="M128 126 Q118 70 150 52 Q150 24 186 26 Q204 6 228 22 Q262 18 264 52 Q290 74 272 126 Q262 92 238 90 Q236 74 214 80 Q196 66 176 84 Q150 80 146 104 Q132 108 128 126 Z" fill={c.hair}></path>
+  <path d="M172 50 q10 -10 24 -4 M214 40 q14 -6 22 6" stroke="#4A3526" stroke-width="5" fill="none" stroke-linecap="round"></path>
+  <!-- raised brows, happy eyes -->
+  <path d="M152 108 Q170 94 190 104" stroke={c.hair} stroke-width="10" fill="none" stroke-linecap="round"></path>
+  <path d="M210 104 Q230 94 248 108" stroke={c.hair} stroke-width="10" fill="none" stroke-linecap="round"></path>
+  <ellipse cx="172" cy="130" rx="8" ry="10" fill={c.ink}></ellipse>
+  <ellipse cx="228" cy="130" rx="8" ry="10" fill={c.ink}></ellipse>
+  <circle cx="175" cy="126" r="3" fill={c.white}></circle>
+  <circle cx="231" cy="126" r="3" fill={c.white}></circle>
+  <path d="M200 136 Q192 156 202 160" stroke={c.skinSh} stroke-width="5" fill="none" stroke-linecap="round"></path>
+  <!-- full beard with a big open grin -->
+  <path {...s} d="M128 140 Q130 222 200 232 Q270 222 272 140 Q262 160 250 166 Q236 182 200 168 Q164 182 150 166 Q138 160 128 140 Z" fill={c.hair}></path>
+  <path {...s} d="M166 170 Q200 156 234 170 Q228 206 200 208 Q172 206 166 170 Z" fill="#7A1F14"></path>
+  <path d="M170 172 Q200 162 230 172 L228 182 Q200 176 172 182 Z" fill={c.white}></path>
+  <path d="M162 166 Q200 146 238 166 Q200 162 162 166 Z" fill={c.hair}></path>
+</svg>

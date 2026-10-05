@@ -26,7 +26,7 @@ export const site = {
   },
 
   contact: {
-    whatsapp: "573000000000", // TODO: REEMPLAZAR, solo dígitos con indicativo 57
+    whatsapp: "573506185226", // +57 350 618 5226
     whatsappMessage: "Hola, quiero agendar mi valoración con Blado.",
     email: "hola@blado.example.com", // TODO: REEMPLAZAR
     serviceArea: "Bogotá y alrededores", // TODO: REEMPLAZAR si aplica

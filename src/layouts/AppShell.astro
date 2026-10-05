@@ -1,0 +1,220 @@
+---
+/**
+ * Student app shell: mobile-first, 4 bottom tabs (Hoy · Plan · Progreso · Perfil).
+ * Taste dials for this surface: VARIANCE 7 / MOTION 5 / DENSITY 4.
+ */
+import "@fontsource-variable/league-gothic/wdth";
+import Base from "@/layouts/Base.astro";
+import Icon, { type IconName } from "@/components/Icon.astro";
+
+interface Props {
+  title: string;
+  tab: "hoy" | "plan" | "progreso" | "perfil";
+}
+const { title, tab } = Astro.props;
+const tabs: { id: Props["tab"]; href: string; label: string; icon: IconName }[] = [
+  { id: "hoy", href: "/app", label: "Hoy", icon: "house" },
+  { id: "plan", href: "/app/plan", label: "Plan", icon: "calendar" },
+  { id: "progreso", href: "/app/progreso", label: "Progreso", icon: "chart" },
+  { id: "perfil", href: "/app/perfil", label: "Perfil", icon: "user" },
+];
+---
+
+<Base title={`${title} · Blado`} noindex>
+  <script is:inline>
+    try { if (localStorage.getItem("blado-mascot-off") === "1") document.documentElement.classList.add("mascot-off"); } catch {}
+  </script>
+  <div class="app">
+    <header class="app-top">
+      <a href="/app" class="app-logo">Blado</a>
+      <slot name="top" />
+    </header>
+    <main class="app-main">
+      <slot />
+    </main>
+    <nav class="app-tabs" aria-label="Secciones">
+      {
+        tabs.map((t) => (
+          <a href={t.href} class="app-tab" aria-current={t.id === tab ? "page" : undefined}>
+            <Icon name={t.icon} size={24} />
+            <span>{t.label}</span>
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</Base>
+
+<style is:global>
+  .app {
+    --lime: #c6ff00;
+    --bg: #0d0d0d;
+    --card: #161715;
+    --card2: #1d1f1c;
+    --fg: #f1f1ec;
+    --mute: #a3a59e;
+    --line: #2a2d2a;
+    --err: #ff7a5c;
+    --bl-bg: var(--card);
+    --disp: "League Gothic Variable", "Arial Narrow", sans-serif;
+    min-height: 100dvh;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  html.mascot-off .app .bladimir {
+    display: none;
+  }
+  .app :focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+  .app-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    height: 60px;
+    padding: 0 16px;
+    background: color-mix(in oklab, var(--bg) 94%, transparent);
+    border-bottom: 1px solid var(--line);
+  }
+  .app-logo {
+    font: 400 30px/1 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+    color: var(--lime);
+    text-decoration: none;
+  }
+  .app-main {
+    width: 100%;
+    max-width: 720px;
+    margin-inline: auto;
+    padding: 20px 16px calc(96px + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    gap: 16px;
+  }
+  .app-tabs {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: #111210;
+    border-top: 1px solid var(--line);
+  }
+  .app-tab {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    padding: 8px 0;
+    border-radius: 14px;
+    color: var(--mute);
+    font: 600 12px/1 var(--font-sans);
+    text-decoration: none;
+  }
+  .app-tab[aria-current="page"] {
+    color: var(--lime);
+    background: rgba(198, 255, 0, 0.08);
+  }
+  @media (min-width: 900px) {
+    .app-tabs {
+      left: 50%;
+      right: auto;
+      bottom: 16px;
+      width: 440px;
+      transform: translateX(-50%);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding-bottom: 6px;
+    }
+  }
+
+  /* shared app pieces */
+  .app-h1 {
+    margin: 0;
+    font: 400 clamp(2.8rem, 9vw, 3.8rem) / 0.9 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+  }
+  .app-h2 {
+    margin: 0;
+    font: 400 2rem/0.95 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+  }
+  .card-lime {
+    background: var(--lime);
+    color: #0d0d0d;
+    border-color: var(--lime);
+  }
+  .muted {
+    color: var(--mute);
+  }
+  .card-lime .muted {
+    color: #2b3300;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--lime);
+    color: #0d0d0d;
+    font: 600 15px/1 var(--font-sans);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .card-lime .pill-btn {
+    background: #0d0d0d;
+    color: var(--lime);
+  }
+  .ghost-btn {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--line);
+  }
+  .big-num {
+    font: 400 3.2rem/0.9 var(--disp);
+    font-variation-settings: "wdth" 75;
+    font-variant-numeric: tabular-nums;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font: 600 12px/1.2 var(--font-sans);
+    background: var(--card2);
+    color: var(--fg);
+  }
+  .tag-ok {
+    background: rgba(198, 255, 0, 0.14);
+    color: var(--lime);
+  }
+  .tag-wait {
+    background: rgba(255, 196, 0, 0.14);
+    color: #ffd166;
+  }
+</style>

@@ -1,15 +1,77 @@
 ---
-// Placeholder for Fase 1. The real landing (Negro Lima) is built in Fase 2.
 export const prerender = true;
 import Base from "@/layouts/Base.astro";
+import Nav from "@/components/landing/Nav.astro";
+import Hero from "@/components/landing/Hero.astro";
+import Agenda from "@/components/landing/Agenda.astro";
+import Coach from "@/components/landing/Coach.astro";
+import Modalidades from "@/components/landing/Modalidades.astro";
+import Proceso from "@/components/landing/Proceso.astro";
+import Seguimiento from "@/components/landing/Seguimiento.astro";
+import Planes from "@/components/landing/Planes.astro";
+import Testimonios from "@/components/landing/Testimonios.astro";
+import Faq from "@/components/landing/Faq.astro";
+import Contacto from "@/components/landing/Contacto.astro";
+import Footer from "@/components/landing/Footer.astro";
+import WhatsAppFloat from "@/components/landing/WhatsAppFloat.astro";
 import { site } from "@/config/site";
+import { faqs } from "@/content/landing";
+
+const title = `${site.brand} · Entrenador personal en ${site.city}, en casa y en gimnasio`;
+const description =
+  "Entrenamiento personal en Bogotá a domicilio y en gimnasio, con seguimiento online. Valoración inicial, plan personalizado y medición de tu progreso cada mes.";
+const ogImage = new URL("/og.jpg", site.url).toString(); // TODO: REEMPLAZAR, crear public/og.jpg 1200x630
+
+const jsonLd = [
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    additionalType: "https://schema.org/HealthAndBeautyBusiness",
+    name: site.brand,
+    description,
+    url: site.url,
+    image: ogImage,
+    telephone: `+${site.contact.whatsapp}`,
+    areaServed: { "@type": "City", name: site.city },
+    address: { "@type": "PostalAddress", addressLocality: site.city, addressCountry: site.country },
+    sameAs: [site.social.instagram, site.social.tiktok].filter(Boolean),
+    priceRange: "$$",
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+  },
+];
 ---
 
-<Base title={`${site.brand} · Entrenamiento personal en ${site.city}`} description="Entrenamiento personal en casa y en gimnasio en Bogotá.">
-  <main class="min-h-[100dvh] grid place-content-center gap-6 px-4">
-    <h1 class="font-display font-black uppercase leading-[0.84] text-[clamp(64px,14vw,180px)]">
-      Entrena con <em class="text-lime">intención.</em>
-    </h1>
-    <p class="text-mute-2">Landing en construcción.</p>
+<Base title={title} description={description}>
+  <Fragment slot="head">
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_CO" />
+    <meta property="og:site_name" content={site.brand} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={site.url} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+  </Fragment>
+
+  <a href="#contenido" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-lime focus:px-4 focus:py-3 focus:text-ink">Saltar al contenido</a>
+  <Nav />
+  <main id="contenido">
+    <Hero />
+    <Agenda />
+    <Modalidades />
+    <Proceso />
+    <Seguimiento />
+    <Coach />
+    <Planes />
+    <Testimonios />
+    <Faq />
+    <Contacto />
   </main>
+  <Footer />
+  <WhatsAppFloat />
 </Base>

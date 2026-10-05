@@ -1,0 +1,483 @@
+---
+// Design preview B (noindex). Pattern: Kinetic-Type split hero + layered photos, agenda rail, asymmetric bento.
+export const prerender = true;
+import "@fontsource-variable/smooch-sans";
+import Base from "@/layouts/Base.astro";
+import Icon from "@/components/Icon.astro";
+import LiveAgenda from "@/components/live/LiveAgenda.astro";
+import LiveStatus from "@/components/live/LiveStatus.astro";
+import { whatsappUrl } from "@/config/site";
+
+const words = ["intención", "constancia", "técnica", "datos"];
+---
+
+<Base title="Propuesta B · Pulso · Blado" noindex theme="light">
+  <div class="B">
+    <header class="b-nav">
+      <a href="#" class="b-logo">Blado</a>
+      <nav aria-label="Principal"><a href="#b-agenda">Agenda</a><a href="#b-mod">Modalidades</a><a href="#b-cta">Contacto</a></nav>
+      <a href="#b-cta" class="b-btn b-btn-sm">Agenda tu valoración</a>
+    </header>
+
+    <section class="b-hero" aria-labelledby="b-h1">
+      <div class="b-copy">
+        <h1 id="b-h1" class="b-h1">
+          Entrena con
+          <span class="b-swap" aria-live="off">
+            <span class="b-swap-sr">intención</span>
+            {words.map((w, i) => <span class:list={["b-word", i === 0 && "is-on"]} aria-hidden="true">{w}</span>)}
+          </span>
+        </h1>
+        <p class="b-lead">Coach personal en Bogotá, en tu casa o en tu gimnasio. Cada mes medimos y ajustamos tu plan.</p>
+        <div class="b-ctas">
+          <a href="#b-cta" class="b-btn">Agenda tu valoración <Icon name="arrowRight" size={18} /></a>
+          <a href={whatsappUrl()} target="_blank" rel="noopener" class="b-link"><Icon name="whatsapp" size={20} /> WhatsApp</a>
+        </div>
+      </div>
+      <div class="b-media">
+        <img class="b-img-main" src="/stock/casa-mujer.jpg" alt="Mujer entrenando abdomen en casa" fetchpriority="high" />
+        <img class="b-img-sub" src="/stock/coach-cliente.jpg" alt="Entrenadora corrigiendo a un alumno" />
+        <div class="b-chip">
+          <span class="b-dot" data-ls-dot></span>
+          <div><strong data-ls-status>Consultando agenda</strong><small>Próximo libre <b data-ls-next>...</b></small></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="b-band" aria-hidden="true">
+      <div class="b-band-track">
+        {Array.from({ length: 2 }).map(() => (
+          <span>En casa <i /> En gimnasio <i /> Online <i /> Medición cada 4 semanas <i /> Check-in semanal <i /></span>
+        ))}
+      </div>
+    </div>
+
+    <section id="b-agenda" class="b-sec" aria-labelledby="b-agenda-t">
+      <h2 id="b-agenda-t" class="b-h2">Agenda en vivo</h2>
+      <p class="b-lead">Desliza para ver los próximos 7 días. Los horarios en lima están libres: tócalos y me escribes por WhatsApp.</p>
+      <div class="b-agenda"><LiveAgenda variant="rail" /></div>
+    </section>
+
+    <section id="b-mod" class="b-sec" aria-labelledby="b-mod-t">
+      <h2 id="b-mod-t" class="b-h2">¿Dónde entrenas?</h2>
+      <div class="b-bento">
+        <figure class="b-cell b-cell-big">
+          <img src="/stock/casa-hombre.jpg" alt="Hombre entrenando en la sala de su casa" loading="lazy" />
+          <figcaption><span class="b-h3">En casa</span>Voy a tu casa. Entrenas con lo que tienes.</figcaption>
+        </figure>
+        <figure class="b-cell">
+          <img src="/stock/gym-entreno.jpg" alt="Entrenador guiando un ejercicio en el gimnasio" loading="lazy" />
+          <figcaption><span class="b-h3">En gimnasio</span>Técnica y progresión en cada serie.</figcaption>
+        </figure>
+        <div class="b-cell b-cell-lime">
+          <span class="b-h3">Online</span>
+          <p>Plan semanal, check-in en menos de un minuto y ajustes con tus datos, desde la app.</p>
+          <span class="b-big" data-ls-free>0</span>
+          <small>horarios libres esta semana</small>
+        </div>
+      </div>
+    </section>
+
+    <section id="b-cta" class="b-final" aria-labelledby="b-cta-t">
+      <h2 id="b-cta-t" class="b-h2">Tu primera sesión empieza con una valoración</h2>
+      <a href={whatsappUrl()} target="_blank" rel="noopener" class="b-btn">Escríbeme por WhatsApp <Icon name="arrowRight" size={18} /></a>
+    </section>
+    <footer class="b-foot"><span>Fotos de stock temporales (Unsplash)</span><span>Hecho con amor por JuanCode</span></footer>
+  </div>
+  <LiveStatus />
+</Base>
+
+<style is:global>
+  .B {
+    --bg: #f3f3f0;
+    --card: #ffffff;
+    --fg: #0d0e0d;
+    --mute: #5d625d;
+    --line: #dcddd8;
+    --lime: #c8ff1a;
+    --disp: "Smooch Sans Variable", "Arial Narrow", sans-serif;
+    --pad: clamp(16px, 4vw, 56px);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .B .la {
+    --la-bg: var(--card);
+    --la-fg: var(--fg);
+    --la-mute: var(--mute);
+    --la-line: var(--line);
+    --la-free-bg: var(--lime);
+    --la-free-fg: #0d0e0d;
+    --la-radius: 22px;
+    --la-display: var(--disp);
+  }
+  .B .la-head b {
+    font-weight: 900;
+    font-size: 2.3rem;
+  }
+  .b-h1,
+  .b-h2,
+  .b-h3,
+  .b-logo,
+  .b-big {
+    font-family: var(--disp);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.82;
+    letter-spacing: -0.005em;
+    margin: 0;
+  }
+  .B :focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 3px;
+  }
+  .b-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    height: 72px;
+    padding-inline: var(--pad);
+  }
+  .b-nav nav {
+    display: flex;
+    gap: 32px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .b-nav nav a {
+    color: var(--fg);
+    text-decoration: none;
+  }
+  @media (max-width: 860px) {
+    .b-nav nav {
+      display: none;
+    }
+  }
+  .b-logo {
+    font-size: 40px;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .b-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 56px;
+    padding: 0 28px;
+    border-radius: 999px;
+    background: var(--fg);
+    color: #fff;
+    font: 600 15px/1 var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+      background-color 0.25s;
+  }
+  .b-btn:hover {
+    background: #2b2e2b;
+    transform: translateY(-1px);
+  }
+  .b-btn:active {
+    transform: scale(0.98);
+  }
+  .b-btn-sm {
+    height: 42px;
+    padding: 0 18px;
+    font-size: 13px;
+  }
+  .b-link {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1.5px solid currentColor;
+    padding-bottom: 3px;
+  }
+
+  /* hero */
+  .b-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: clamp(24px, 4vw, 64px);
+    align-items: center;
+    padding: clamp(24px, 4vw, 48px) var(--pad) clamp(48px, 6vw, 80px);
+    min-height: calc(100dvh - 72px);
+  }
+  @media (max-width: 900px) {
+    .b-hero {
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+  }
+  .b-copy {
+    display: grid;
+    gap: 28px;
+  }
+  .b-h1 {
+    font-size: clamp(5.5rem, 11vw, 12.5rem);
+  }
+  .b-swap {
+    position: relative;
+    display: block;
+    height: 0.86em;
+    overflow: hidden;
+  }
+  .b-swap-sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .b-word {
+    position: absolute;
+    left: 0;
+    top: 0;
+    padding: 0 0.08em;
+    background: var(--lime);
+    transform: translateY(105%);
+    transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .b-word.is-on {
+    transform: translateY(0);
+  }
+  .b-word.is-out {
+    transform: translateY(-105%);
+  }
+  .b-lead {
+    margin: 0;
+    color: var(--mute);
+    font-size: clamp(1.05rem, 1.3vw, 1.25rem);
+    line-height: 1.5;
+    max-width: 42ch;
+  }
+  .b-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+  }
+  .b-media {
+    position: relative;
+    height: clamp(460px, 72vh, 760px);
+  }
+  .b-img-main {
+    position: absolute;
+    inset: 0 0 12% 14%;
+    width: 86%;
+    height: 88%;
+    object-fit: cover;
+    border-radius: 28px;
+  }
+  .b-img-sub {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 46%;
+    height: 44%;
+    object-fit: cover;
+    border-radius: 22px;
+    border: 6px solid var(--bg);
+  }
+  .b-chip {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--card);
+    border-radius: 18px;
+    box-shadow: 0 18px 40px -20px rgba(20, 24, 20, 0.35);
+    font-size: 14px;
+  }
+  .b-chip div {
+    display: grid;
+    gap: 4px;
+  }
+  .b-chip small {
+    color: var(--mute);
+  }
+  .b-chip b {
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .b-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #9a9d98;
+  }
+  .b-dot[data-state="disponible"] {
+    background: #3fb44a;
+    box-shadow: 0 0 0 4px rgba(63, 180, 74, 0.18);
+  }
+  .b-dot[data-state="ocupado"] {
+    background: #e5532d;
+  }
+
+  /* band (the one marquee) */
+  .b-band {
+    background: var(--fg);
+    color: var(--bg);
+    overflow: hidden;
+    padding: 18px 0;
+  }
+  .b-band-track {
+    display: flex;
+    width: max-content;
+    animation: b-marq 40s linear infinite;
+  }
+  .b-band-track span {
+    display: inline-flex;
+    align-items: center;
+    gap: 28px;
+    padding-right: 28px;
+    font: 900 clamp(2rem, 3.6vw, 3.2rem) / 1 var(--disp);
+    text-transform: uppercase;
+  }
+  .b-band i {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--lime);
+  }
+  @keyframes b-marq {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  .b-sec > * {
+    min-width: 0;
+  }
+  .b-sec {
+    padding: clamp(80px, 10vw, 140px) var(--pad);
+    display: grid;
+    gap: 22px;
+  }
+  .b-h2 {
+    font-size: clamp(4rem, 9vw, 9rem);
+    max-width: 14ch;
+  }
+  .b-agenda {
+    min-width: 0;
+    margin-top: 20px;
+  }
+
+  /* bento: 3 items -> 3 cells */
+  .b-bento {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    grid-template-rows: 300px 300px;
+    gap: 10px;
+  }
+  .b-cell {
+    position: relative;
+    margin: 0;
+    overflow: hidden;
+    border-radius: 26px;
+  }
+  .b-cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .b-cell figcaption {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: grid;
+    gap: 6px;
+    padding: 24px;
+    color: #fff;
+    background: linear-gradient(0deg, rgba(10, 11, 10, 0.75), transparent);
+  }
+  .b-cell-big {
+    grid-row: span 2;
+  }
+  .b-h3 {
+    font-size: clamp(2.8rem, 4vw, 4rem);
+  }
+  .b-cell-lime {
+    background: var(--lime);
+    padding: 28px;
+    display: grid;
+    align-content: space-between;
+  }
+  .b-cell-lime p {
+    margin: 0;
+    max-width: 34ch;
+  }
+  .b-big {
+    font-size: clamp(5rem, 8vw, 8rem);
+    line-height: 0.8;
+  }
+  @media (max-width: 760px) {
+    .b-bento {
+      grid-template-columns: 1fr;
+      grid-template-rows: none;
+    }
+    .b-cell-big {
+      grid-row: auto;
+      height: 340px;
+    }
+    .b-cell {
+      min-height: 280px;
+    }
+  }
+  .b-final {
+    padding: clamp(80px, 10vw, 140px) var(--pad);
+    display: grid;
+    gap: 32px;
+    justify-items: start;
+    border-top: 1px solid var(--line);
+  }
+  .b-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px var(--pad);
+    font-size: 13px;
+    color: var(--mute);
+    border-top: 1px solid var(--line);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .b-band-track {
+      animation: none;
+    }
+    .b-word {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Kinetic word swap: one word visible at a time (static under reduced motion).
+  const words = [...document.querySelectorAll<HTMLElement>(".b-word")];
+  if (words.length > 1 && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    let i = 0;
+    setInterval(() => {
+      const cur = words[i]!;
+      i = (i + 1) % words.length;
+      const next = words[i]!;
+      cur.classList.remove("is-on");
+      cur.classList.add("is-out");
+      next.classList.remove("is-out");
+      next.classList.add("is-on");
+      // Park the old word below again without animating through the visible slot.
+      setTimeout(() => {
+        cur.style.transition = "none";
+        cur.classList.remove("is-out");
+        void cur.offsetWidth;
+        cur.style.transition = "";
+      }, 750);
+    }, 2400);
+  }
+</script>

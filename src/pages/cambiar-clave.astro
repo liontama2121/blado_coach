@@ -1,0 +1,72 @@
+---
+export const prerender = false;
+import AuthShell from "@/components/auth/AuthShell.astro";
+import Icon from "@/components/Icon.astro";
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password";
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect("/login");
+const first = (user.studentName ?? "").split(" ")[0];
+---
+
+<AuthShell
+  title="Crea tu contraseña · Blado"
+  heading="Crea tu contraseña"
+  bubble={first ? `¡Bienvenido/a, ${first}! Crea tu contraseña y arrancamos.` : "Crea tu contraseña y arrancamos."}
+>
+  <form class="auth-form" id="pw-form" novalidate>
+    <p class="auth-note">Tu coach te dio una clave temporal. Crea una propia: mínimo {PASSWORD_MIN_LENGTH} caracteres, con letras y números.</p>
+    <div class="auth-field">
+      <label for="password">Nueva contraseña</label>
+      <div class="auth-input-wrap">
+        <input id="password" name="password" type="password" autocomplete="new-password" required minlength={PASSWORD_MIN_LENGTH} class="auth-input" data-pw aria-describedby="err-password" />
+        <button type="button" class="auth-eye" data-pw-toggle aria-pressed="false" aria-label="Mostrar contraseña" aria-controls="password confirm">
+          <span class="when-off"><Icon name="eye" size={22} /></span>
+          <span class="when-on"><Icon name="eyeOff" size={22} /></span>
+        </button>
+      </div>
+      <p class="auth-err" id="err-password" data-err="password"></p>
+    </div>
+    <div class="auth-field">
+      <label for="confirm">Repite la contraseña</label>
+      <input id="confirm" name="confirm" type="password" autocomplete="new-password" required class="auth-input" data-pw aria-describedby="err-confirm" />
+      <p class="auth-err" id="err-confirm" data-err="confirm"></p>
+    </div>
+    <p class="auth-err" data-err="form" role="alert"></p>
+    <button type="submit" class="auth-btn"><Icon name="check" size={20} /> <span data-label>Guardar y entrar</span></button>
+  </form>
+  <form action="/api/auth/logout" method="post"><button class="auth-note" style="background:none;border:0;cursor:pointer;text-decoration:underline">Salir</button></form>
+</AuthShell>
+
+<script>
+  const form = document.getElementById("pw-form") as HTMLFormElement;
+  const btn = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+  const say = (s: string, t?: string) => (window as unknown as { bladimirSay?: (s: string, t?: string) => void }).bladimirSay?.(s, t);
+  const showErrors = (errors: Record<string, string>) =>
+    form.querySelectorAll<HTMLElement>("[data-err]").forEach((el) => {
+      const k = el.dataset.err!;
+      el.textContent = errors[k] ?? "";
+      form.querySelector(`[name="${k}"]`)?.setAttribute("aria-invalid", String(Boolean(errors[k])));
+    });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    say("think", "Guardando...");
+    const body = Object.fromEntries(new FormData(form));
+    try {
+      const res = await fetch("/api/auth/password", { method: "POST", body: JSON.stringify(body), headers: { "content-type": "application/json" } });
+      const data = (await res.json()) as { ok: boolean; redirect?: string; errors?: Record<string, string> };
+      if (data.ok) {
+        say("celebrate", "¡Listo! Ya eres parte del equipo.");
+        setTimeout(() => location.assign(data.redirect ?? "/app"), 1000);
+        return;
+      }
+      showErrors(data.errors ?? {});
+      say("sad-soft", "Casi. Revisa lo que te marqué.");
+    } catch {
+      showErrors({ form: "Sin conexión. Revisa tu internet." });
+    }
+    btn.disabled = false;
+  });
+</script>

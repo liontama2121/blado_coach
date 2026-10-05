@@ -1,0 +1,60 @@
+---
+import Icon from "@/components/Icon.astro";
+import { formatCop, site } from "@/config/site";
+
+// Shared by every plan. Specifics per plan come from site.ts.
+const everyPlan = ["Valoración inicial completa", "App con tu progreso", "Medición y fotos cada 4 semanas", "Check-in semanal"];
+const perPlan: Record<string, string> = {
+  casa: "Sesiones en tu casa",
+  gym: "Sesiones en tu gimnasio",
+  online: "Plan y seguimiento 100 % en la app",
+};
+---
+
+<section id="planes" class="border-t border-line bg-ink py-24 md:py-32" aria-labelledby="planes-title">
+  <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+    <h2 id="planes-title" class="display max-w-[14ch] text-[clamp(3rem,7vw,6rem)] text-bone">Elige cómo entrenar.</h2>
+
+    <div class="mt-14 grid border border-line md:grid-cols-3">
+      {
+        site.plans.map((p, i) => (
+          <article class:list={["relative grid content-start gap-6 p-6 md:p-8", i > 0 && "border-t border-line md:border-l md:border-t-0"]}>
+            <h3 class="display text-[clamp(2.6rem,4vw,3.5rem)] text-bone">{p.name}</h3>
+            <p class="flex items-baseline gap-2">
+              {p.priceCop > 0 ? (
+                <>
+                  <span class="display tnum text-5xl text-lime">{formatCop(p.priceCop)}</span>
+                  <span class="text-sm text-mute-2">/ {p.period}</span>
+                </>
+              ) : (
+                <span class="text-lg text-mute-2">Precio por confirmar</span>
+              )}
+            </p>
+            {p.sessionsPerWeek > 0 && <p class="text-bone">{p.sessionsPerWeek} sesiones por semana</p>}
+            <ul class="grid gap-3 text-sm text-mute-2">
+              {[perPlan[p.id], ...everyPlan].filter(Boolean).map((f) => (
+                <li class="flex gap-3">
+                  <Icon name="check" size={16} class="mt-0.5 shrink-0 text-lime" />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            <a href={`#contacto`} data-modality={p.id} class:list={["btn mt-2 w-fit", i === 0 ? "btn-lime" : "btn-ghost"]}>
+              Agenda tu valoración
+            </a>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<script>
+  // Preselect the modality in the contact form when a plan button is used.
+  document.querySelectorAll<HTMLAnchorElement>("a[data-modality]").forEach((a) =>
+    a.addEventListener("click", () => {
+      const input = document.querySelector<HTMLInputElement>(`input[name="modality"][value="${a.dataset.modality}"]`);
+      if (input) input.checked = true;
+    }),
+  );
+</script>

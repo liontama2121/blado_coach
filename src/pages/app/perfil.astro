@@ -1,0 +1,112 @@
+---
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { ageOn } from "@/lib/metrics";
+import { bogotaParts } from "@/lib/schedule";
+import { GOAL_LABEL, getConsents, getStudent } from "@/lib/server/student";
+
+const user = Astro.locals.user!;
+const [student, consents] = await Promise.all([getStudent(env.DB, user.studentId!), getConsents(env.DB, user.studentId!)]);
+const age = student ? ageOn(student.birth_date, bogotaParts(new Date()).date) : null;
+const KIND: Record<string, string> = {
+  datos_personales: "Tratamiento de datos personales",
+  datos_salud: "Datos de salud",
+  fotos_progreso: "Fotos de progreso privadas",
+  fotos_publicas: "Uso público de fotos",
+};
+---
+
+<AppShell title="Perfil" tab="perfil">
+  <section class="card" style="grid-template-columns:auto 1fr;align-items:center">
+    <Bladimir state="idle" size={80} />
+    <div>
+      <h1 class="app-h1" style="font-size:2.6rem">{student?.full_name}</h1>
+      <p class="muted text-sm">{user.email}</p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="d-t">
+    <h2 id="d-t" class="app-h2">Mis datos</h2>
+    <dl class="dl">
+      <dt>Edad</dt><dd>{age ?? "-"} años</dd>
+      <dt>Teléfono</dt><dd>{student?.phone ?? "-"}</dd>
+      <dt>Objetivo</dt><dd>{student ? GOAL_LABEL[student.goal_type] : "-"}</dd>
+      <dt>Inicio</dt><dd>{student ? formatDate(student.start_date) : "-"}</dd>
+      <dt>Dirección (sesiones en casa)</dt><dd>{student?.home_address ?? "Sin registrar"}</dd>
+    </dl>
+    <p class="muted text-sm">Para cambiar tus datos o restricciones, escríbele al coach.</p>
+  </section>
+
+  <section class="card" aria-labelledby="c-t">
+    <h2 id="c-t" class="app-h2">Consentimientos</h2>
+    <ul class="dl-list">
+      {
+        consents.map((c) => (
+          <li class="row">
+            <span>{KIND[c.kind] ?? c.kind}</span>
+            <span class:list={["tag", !c.revoked_at && "tag-ok"]}>{c.revoked_at ? "Revocado" : "Activo"}</span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="card" aria-labelledby="p-t">
+    <h2 id="p-t" class="app-h2">Preferencias</h2>
+    <label class="row" for="mascot-toggle">
+      <span>Mostrar a Bladimir</span>
+      <input id="mascot-toggle" type="checkbox" class="switch" checked />
+    </label>
+  </section>
+
+  <form action="/api/auth/logout" method="post">
+    <button class="pill-btn ghost-btn" style="width:100%"><Icon name="logout" size={18} /> Cerrar sesión</button>
+  </form>
+</AppShell>
+
+<style>
+  .dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 16px;
+    margin: 0;
+  }
+  .dl dt {
+    color: var(--mute);
+  }
+  .dl dd {
+    margin: 0;
+    text-align: right;
+  }
+  .dl-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .switch {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--lime);
+  }
+</style>
+
+<script>
+  const t = document.getElementById("mascot-toggle") as HTMLInputElement | null;
+  if (t) {
+    try {
+      t.checked = localStorage.getItem("blado-mascot-off") !== "1";
+    } catch {}
+    t.addEventListener("change", () => {
+      try {
+        localStorage.setItem("blado-mascot-off", t.checked ? "0" : "1");
+      } catch {}
+      document.documentElement.classList.toggle("mascot-off", !t.checked);
+    });
+  }
+</script>

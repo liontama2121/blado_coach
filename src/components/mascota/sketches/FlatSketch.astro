@@ -1,0 +1,71 @@
+---
+// Style 1: flat modern. Clean geometric shapes, flat shadows, ~6 colors.
+const c = {
+  skin: "#C8895B",
+  skinSh: "#A86C42",
+  hair: "#231912",
+  camo: "#5E6B37",
+  camoDark: "#3C4423",
+  camoBrown: "#7A5532",
+  camoSand: "#C6B88B",
+  phone: "#E3261B",
+  ink: "#17150F",
+  white: "#F2F2EE",
+};
+---
+
+<svg viewBox="0 0 400 480" role="img" aria-label="Boceto flat de Bladimir" class="h-full w-full">
+  <defs>
+    <pattern id="flat-camo" width="120" height="120" patternUnits="userSpaceOnUse">
+      <rect width="120" height="120" fill={c.camo}></rect>
+      <path d="M10 20 q20 -18 40 0 q12 14 -6 26 q-22 10 -34 -6 z" fill={c.camoDark}></path>
+      <path d="M70 10 q26 -6 34 14 q6 18 -18 20 q-24 0 -16 -34 z" fill={c.camoBrown}></path>
+      <path d="M60 60 q22 -10 36 6 q10 16 -10 24 q-30 8 -26 -30 z" fill={c.camoSand}></path>
+      <path d="M8 74 q18 -8 30 6 q8 18 -14 22 q-20 2 -16 -28 z" fill={c.camoBrown}></path>
+      <path d="M30 100 q16 -8 30 4 q4 14 -16 14 q-18 -2 -14 -18 z" fill={c.camoDark}></path>
+      <path d="M96 92 q14 -6 22 8 q2 14 -14 12 q-14 -4 -8 -20 z" fill={c.camoDark}></path>
+    </pattern>
+  </defs>
+
+  <!-- traps + shoulders -->
+  <path d="M170 196 Q130 205 96 222 L304 222 Q270 205 230 196 Z" fill={c.skinSh}></path>
+  <!-- left arm (hanging) -->
+  <circle cx="98" cy="262" r="56" fill={c.skin}></circle>
+  <path d="M48 268 Q40 360 58 480 L138 480 Q150 380 148 268 Z" fill={c.skin}></path>
+  <path d="M60 330 Q96 352 132 330 Q140 372 128 400 Q96 410 64 398 Q54 370 60 330 Z" fill={c.skinSh}></path>
+  <!-- right arm bent, holding the phone up -->
+  <circle cx="302" cy="262" r="56" fill={c.skin}></circle>
+  <path d="M352 268 Q362 340 340 398 L292 392 Q300 340 256 268 Z" fill={c.skin}></path>
+  <path d="M340 396 Q300 420 262 352 L292 330 Q312 372 330 360 Z" fill={c.skinSh}></path>
+  <!-- torso: camo tank -->
+  <path d="M132 214 L168 214 Q200 266 232 214 L268 214 Q284 240 290 262 L300 480 L100 480 L110 262 Q116 240 132 214 Z" fill="url(#flat-camo)"></path>
+  <path d="M200 300 L200 480" stroke={c.camoDark} stroke-width="3" opacity=".35"></path>
+  <!-- phone in right hand -->
+  <g transform="rotate(-12 280 330)">
+    <rect x="258" y="292" width="44" height="76" rx="8" fill={c.phone}></rect>
+    <rect x="264" y="300" width="32" height="56" rx="4" fill="#9E140E"></rect>
+    <circle cx="280" cy="362" r="3" fill={c.white}></circle>
+  </g>
+  <ellipse cx="292" cy="372" rx="26" ry="20" fill={c.skin}></ellipse>
+  <!-- neck -->
+  <path d="M172 150 L228 150 L232 216 Q200 230 168 216 Z" fill={c.skinSh}></path>
+  <!-- head -->
+  <ellipse cx="142" cy="140" rx="11" ry="17" fill={c.skinSh}></ellipse>
+  <ellipse cx="258" cy="140" rx="11" ry="17" fill={c.skinSh}></ellipse>
+  <ellipse cx="200" cy="136" rx="58" ry="68" fill={c.skin}></ellipse>
+  <!-- hair: volume on top, short sides -->
+  <path d="M144 132 Q138 70 168 56 Q176 34 202 40 Q222 26 240 44 Q268 52 260 132 L252 118 Q250 92 230 88 Q206 78 182 88 Q156 92 152 120 Z" fill={c.hair}></path>
+  <circle cx="174" cy="58" r="16" fill={c.hair}></circle>
+  <circle cx="204" cy="46" r="18" fill={c.hair}></circle>
+  <circle cx="234" cy="56" r="16" fill={c.hair}></circle>
+  <!-- brows + eyes -->
+  <path d="M166 116 L192 112 L192 120 L166 124 Z" fill={c.hair}></path>
+  <path d="M208 112 L234 116 L234 124 L208 120 Z" fill={c.hair}></path>
+  <circle cx="179" cy="134" r="5.5" fill={c.ink}></circle>
+  <circle cx="221" cy="134" r="5.5" fill={c.ink}></circle>
+  <path d="M200 138 L193 158 L206 158 Z" fill={c.skinSh}></path>
+  <!-- beard + mustache + smile -->
+  <path d="M143 138 Q144 206 200 216 Q256 206 257 138 L246 140 Q242 168 226 176 Q200 164 174 176 Q158 168 154 140 Z" fill={c.hair}></path>
+  <path d="M172 170 Q200 154 228 170 Q200 178 172 170 Z" fill={c.hair}></path>
+  <path d="M184 182 Q200 196 216 182 Z" fill={c.white}></path>
+</svg>

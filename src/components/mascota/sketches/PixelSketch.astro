@@ -1,0 +1,114 @@
+---
+// Style 3: 16-bit pixel art with a white sticker outline.
+// The sprite is authored as a character grid (head by hand) plus a generated body
+// (camo pattern, arms, phone). The white outline is a 1-px dilation of every filled pixel.
+const P: Record<string, string> = {
+  K: "#17150F", // outline
+  H: "#231912", // hair / beard
+  h: "#4A3526", // hair highlight
+  S: "#C8895B", // skin
+  s: "#A86C42", // skin shadow
+  W: "#F4F4F0", // teeth / glint
+  O: "#5E6B37", // camo olive
+  o: "#3C4423", // camo dark
+  N: "#7A5532", // camo brown
+  T: "#C6B88B", // camo sand
+  R: "#E3261B", // phone
+  r: "#9E140E", // phone screen
+};
+
+const W = 34;
+const head = [
+  "..........KKK.KKKK.KK.............",
+  ".........KhHHKHhHHKHhK............",
+  "........KHHhHHHHhHHHHHK...........",
+  "........KHHHHHHHHHHHHHK...........",
+  "........KHHHHHHHHHHHHHK...........",
+  "........KHHSSSSSSSSSHHK...........",
+  "........KHSSSSSSSSSSSHK...........",
+  "........KSKKKSSSSKKKSSK...........",
+  ".......KsSSSKSSSSSSKSSSsK.........",
+  "........KSSSSSSsSSSSSSSK..........",
+  "........KHSSSSSssSSSSSHK..........",
+  "........KHHHHHHHHHHHHHHK..........",
+  "........KHHHHKWWWWKHHHHK..........",
+  "........KHHHHHKKKKHHHHHK..........",
+  ".........KHHHHHHHHHHHHK...........",
+  "..........KKHHHHHHHHKK............",
+].map((r) => r.padEnd(W, ".").slice(0, W));
+
+// Shift head so its center (col ~15.5) sits on the sprite center (col 16.5).
+const shifted = head.map((r) => ("." + r).slice(0, W));
+
+const camo = (x: number, y: number) => {
+  const v = (x * 7 + y * 13 + ((x * y) % 5)) % 11;
+  return v < 4 ? "O" : v < 6 ? "o" : v < 8 ? "N" : v < 9 ? "T" : "O";
+};
+
+const body: string[] = [];
+const rows = 17;
+for (let i = 0; i < rows; i++) {
+  const y = i;
+  const row = Array(W).fill(".");
+  // neck on the first two rows
+  if (i < 2) {
+    for (let x = 13; x <= 20; x++) row[x] = x === 13 || x === 20 ? "K" : i === 0 ? "s" : "S";
+    if (i === 1) {
+      for (let x = 7; x <= 12; x++) row[x] = x === 7 ? "K" : "s";
+      for (let x = 21; x <= 26; x++) row[x] = x === 26 ? "K" : "s";
+    }
+    body.push(row.join(""));
+    continue;
+  }
+  const taper = i > 12 ? 1 : 0;
+  const tl = 11 + taper;
+  const tr = 22 - taper;
+  // arms: outer edge widens at the deltoids then narrows
+  const armOutL = i < 4 ? 4 : i < 10 ? 3 : 4;
+  const armOutR = W - 1 - armOutL;
+  row[armOutL] = "K";
+  row[armOutR] = "K";
+  for (let x = armOutL + 1; x < tl - 1; x++) row[x] = x === armOutL + 1 || (i > 6 && i < 10) ? "s" : "S";
+  for (let x = tr + 2; x < armOutR; x++) row[x] = x === armOutR - 1 || (i > 6 && i < 10) ? "s" : "S";
+  row[tl - 1] = "K";
+  row[tr + 1] = "K";
+  // tank top with a scoop neckline
+  for (let x = tl; x <= tr; x++) {
+    const inNeck = i < 5 && x >= 14 && x <= 19 && !(i === 4 && (x === 14 || x === 19));
+    row[x] = inNeck ? (i === 2 ? "s" : "S") : camo(x, y);
+  }
+  // phone in the left hand (viewer's left), bottom rows
+  if (i >= 12 && i <= 16) {
+    for (let x = 2; x <= 6; x++) row[x] = x === 2 || x === 6 || i === 12 || i === 16 ? "K" : i === 15 ? "R" : "r";
+  }
+  body.push(row.join(""));
+}
+
+const sprite = [...shifted, ...body];
+const H = sprite.length;
+const filled = (x: number, y: number) => y >= 0 && y < H && x >= 0 && x < W && sprite[y]![x] !== ".";
+const outline: [number, number][] = [];
+for (let y = -1; y <= H; y++)
+  for (let x = -1; x <= W; x++)
+    if (!filled(x, y) && [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]].some(([dx, dy]) => filled(x + dx!, y + dy!)))
+      outline.push([x, y]);
+
+const px = 10;
+const pad = 2;
+const vbW = (W + pad * 2) * px;
+const vbH = (H + pad * 2) * px;
+---
+
+<svg viewBox={`0 0 ${vbW} ${vbH}`} role="img" aria-label="Boceto pixel art de Bladimir" class="h-full w-full" shape-rendering="crispEdges">
+  <g transform={`translate(${pad * px} ${pad * px})`}>
+    <g fill="rgba(0,0,0,.35)" transform="translate(6 6)">
+      {outline.map(([x, y]) => <rect x={x * px} y={y * px} width={px} height={px} />)}
+    </g>
+    <g fill="#FFFFFF">{outline.map(([x, y]) => <rect x={x * px} y={y * px} width={px} height={px} />)}</g>
+    {
+      sprite.map((r, y) =>
+        [...r].map((ch, x) => (ch === "." ? null : <rect x={x * px} y={y * px} width={px} height={px} fill={P[ch]} />)),
+      )
+    }
+  </g>
+</svg>

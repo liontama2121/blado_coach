@@ -1,0 +1,51 @@
+---
+export const prerender = true;
+import Base from "@/layouts/Base.astro";
+import { site } from "@/config/site";
+---
+
+<Base title="Política de tratamiento de datos · Blado" description="Cómo Blado trata tus datos personales y de salud, según la Ley 1581 de 2012.">
+  <main class="mx-auto max-w-[72ch] px-4 py-24">
+    <a href="/" class="text-sm text-mute-2 hover:text-bone">Volver al inicio</a>
+    <h1 class="display mt-6 text-[clamp(3rem,8vw,5rem)] text-bone">Tratamiento de datos</h1>
+
+    <div class="mt-6 border border-dashed border-lime/50 p-4 font-mono text-xs leading-relaxed text-mute-2">
+      Borrador. Antes de publicar, el coach debe completar los datos del responsable y revisarlo con un abogado.
+    </div>
+
+    <div class="mt-10 grid gap-6 leading-relaxed text-mute-2 [&_h2]:mt-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-bone">
+      <h2>Responsable</h2>
+      <p>
+        {site.coach.name}, {site.city}, Colombia. Correo: {site.contact.email}.
+        <!-- TODO: REEMPLAZAR con nombre o razón social, documento y dirección del responsable. -->
+      </p>
+
+      <h2>Qué datos tratamos</h2>
+      <p>
+        Datos de contacto (nombre, teléfono, correo), datos de entrenamiento (objetivo, medidas, pruebas físicas, check-ins) y,
+        solo con tu autorización expresa, datos sensibles de salud (cuestionario de salud, lesiones, medicamentos) y fotos de progreso.
+      </p>
+
+      <h2>Para qué</h2>
+      <p>
+        Contactarte, diseñar y ajustar tu plan de entrenamiento y mostrarte tu progreso. No vendemos ni compartimos tus datos con terceros
+        con fines comerciales.
+      </p>
+
+      <h2>Datos sensibles y fotos</h2>
+      <p>
+        No estás obligado a entregar datos sensibles. Las fotos de progreso requieren una autorización separada, se guardan en un espacio
+        privado, solo las ven tú y tu coach, y puedes revocar esa autorización y borrarlas en cualquier momento desde tu app.
+      </p>
+
+      <h2>Tus derechos</h2>
+      <p>
+        Conocer, actualizar, rectificar y suprimir tus datos, revocar la autorización y presentar quejas ante la Superintendencia de
+        Industria y Comercio. Para ejercerlos, escribe a {site.contact.email}.
+      </p>
+
+      <h2>Vigencia</h2>
+      <p>Versión 2026-10-v1. <!-- TODO: REEMPLAZAR fecha de entrada en vigencia --></p>
+    </div>
+  </main>
+</Base>

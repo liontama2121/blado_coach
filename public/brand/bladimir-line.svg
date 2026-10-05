@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Coach Bladimir, retrato en línea">
+  <rect width="512" height="512" fill="#0D0D0D"/>
+  <g fill="none" stroke="#C6FF00" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 1 hair: tall, very curly cloud; short tight sides -->
+    <path d="M174 238 Q160 214 168 196 A20 20 0 0 1 166 160 A24 24 0 0 1 190 126 A26 26 0 0 1 222 100 A36 36 0 0 1 290 100 A26 26 0 0 1 322 126 A24 24 0 0 1 346 160 A20 20 0 0 1 344 196 Q352 214 338 238"/>
+    <!-- 2-4 spiral curls -->
+    <path d="M212 150 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7"/>
+    <path d="M254 122 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7"/>
+    <path d="M296 150 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7"/>
+    <!-- 5 beard: full outer contour, curly scallops along the chin -->
+    <path d="M176 244 Q172 304 196 344 Q206 362 220 364 Q226 380 242 380 Q250 394 256 394 Q262 394 270 380 Q286 380 292 364 Q306 362 316 344 Q340 304 336 244"/>
+    <!-- 6 cheek line + mustache in one stroke -->
+    <path d="M184 264 Q192 300 212 310 Q236 294 256 304 Q276 294 300 310 Q320 300 328 264"/>
+    <!-- 7 beard curl, centered on the chin -->
+    <path d="M250 360 a7 7 0 1 1 12 4"/>
+    <!-- 8-9 thick brows -->
+    <path d="M198 228 Q218 214 240 224"/>
+    <path d="M314 228 Q294 214 272 224"/>
+    <!-- 10-11 eyes -->
+    <path d="M212 252 Q220 246 228 252"/>
+    <path d="M300 252 Q292 246 284 252"/>
+    <!-- 12 nose, one line -->
+    <path d="M254 240 Q246 274 262 282"/>
+    <!-- 13 kind, confident smile -->
+    <path d="M228 324 Q256 344 284 324"/>
+    <!-- 14-15 strong neck flaring into the traps -->
+    <path d="M226 386 Q226 432 196 458"/>
+    <path d="M286 386 Q286 432 316 458"/>
+  </g>
+</svg>

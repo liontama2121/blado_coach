@@ -37,6 +37,7 @@ What sets Blado apart, as confirmed by the user:
 ## Capabilities and Constraints
 
 - **Scheduling (confirmed 2026-10-04):** sessions happen in the **gym** or **at home** only; online is app-based follow-up with no scheduled sessions. The coach publishes availability, the student requests a slot, and the coach approves or rejects it. Home sessions use the address stored on the student's file, and the system blocks travel time between home sessions (Bogotá traffic). A student sees only their own sessions; the coach sees the whole calendar.
+- **Public live calendar (requested 2026-10-04):** the landing shows the coach's schedule in real time (current week, Bogotá time, a "now" marker, the coach's current status). It shows **only free or busy**, never student names, addresses, or session details.
 - Two roles, coach and student. There is no public sign-up; only the coach creates students.
 - Health data is sensitive (Ley 1581 de 2012, habeas data). Progress-photo consent is separate, explicit, and revocable.
 - Progress photos stay private: signed URLs, EXIF stripped, never public and never indexed.

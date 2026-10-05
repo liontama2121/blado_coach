@@ -1,0 +1,53 @@
+---
+// Tabler icons (outline), the project's single icon family. Inlined so they inherit currentColor.
+import arrowRight from "@tabler/icons/outline/arrow-right.svg?raw";
+import arrowUpRight from "@tabler/icons/outline/arrow-up-right.svg?raw";
+import whatsapp from "@tabler/icons/outline/brand-whatsapp.svg?raw";
+import instagram from "@tabler/icons/outline/brand-instagram.svg?raw";
+import tiktok from "@tabler/icons/outline/brand-tiktok.svg?raw";
+import plus from "@tabler/icons/outline/plus.svg?raw";
+import check from "@tabler/icons/outline/check.svg?raw";
+import house from "@tabler/icons/outline/home.svg?raw";
+import barbell from "@tabler/icons/outline/barbell.svg?raw";
+import phone from "@tabler/icons/outline/device-mobile.svg?raw";
+import lock from "@tabler/icons/outline/lock.svg?raw";
+import kettlebell from "@tabler/icons/outline/dumbbell.svg?raw";
+import weight from "@tabler/icons/outline/weight.svg?raw";
+import jumpRope from "@tabler/icons/outline/jump-rope.svg?raw";
+import stopwatch from "@tabler/icons/outline/stopwatch.svg?raw";
+import heartRate from "@tabler/icons/outline/heart-rate-monitor.svg?raw";
+import run from "@tabler/icons/outline/run.svg?raw";
+import eye from "@tabler/icons/outline/eye.svg?raw";
+import eyeOff from "@tabler/icons/outline/eye-off.svg?raw";
+import calendar from "@tabler/icons/outline/calendar-event.svg?raw";
+import chart from "@tabler/icons/outline/chart-line.svg?raw";
+import user from "@tabler/icons/outline/user.svg?raw";
+import logout from "@tabler/icons/outline/logout.svg?raw";
+import login from "@tabler/icons/outline/login-2.svg?raw";
+import clipboard from "@tabler/icons/outline/clipboard-list.svg?raw";
+
+const icons = {
+  arrowRight, arrowUpRight, whatsapp, instagram, tiktok, plus, check, house, barbell, phone, lock,
+  kettlebell, weight, jumpRope, stopwatch, heartRate, run,
+  eye, eyeOff, calendar, chart, user, logout, login, clipboard,
+} as const;
+export type IconName = keyof typeof icons;
+
+interface Props {
+  name: IconName;
+  size?: number;
+  stroke?: number;
+  class?: string;
+  label?: string;
+}
+
+const { name, size = 20, stroke = 1.75, class: className = "", label } = Astro.props;
+const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true" focusable="false"';
+const svg = icons[name]
+  .replace(/\swidth="24"/, ` width="${size}"`)
+  .replace(/\sheight="24"/, ` height="${size}"`)
+  .replace(/stroke-width="2"/, `stroke-width="${stroke}"`)
+  .replace(/class="[^"]*"/, `class="${className}" ${a11y}`);
+---
+
+<Fragment set:html={svg} />

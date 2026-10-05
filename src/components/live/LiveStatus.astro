@@ -1,0 +1,51 @@
+---
+/**
+ * Small live readouts fed by LiveAgenda's `agenda:data` event.
+ * Place any of these attributes anywhere on the page:
+ *   data-ls-status   "Disponible ahora" / "En sesión" / "Fuera de horario"
+ *   data-ls-dot      gets data-state for styling
+ *   data-ls-next     "Lun 08:00"
+ *   data-ls-free     number of free slots in the next 7 days
+ *   data-ls-clock    Bogotá time HH:MM, ticking
+ * Renders nothing itself; include it once per page.
+ */
+---
+
+<script>
+  import { formatMinute } from "@/lib/schedule";
+
+  type Agenda = {
+    today: string;
+    status: string;
+    nextFree: { date: string; slot: { start: number } } | null;
+    days: { slots: { state: string }[] }[];
+  } | null;
+
+  const SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const LABEL: Record<string, string> = { disponible: "Disponible ahora", ocupado: "En sesión", fuera_de_horario: "Fuera de horario" };
+  const set = (sel: string, text: string) => document.querySelectorAll<HTMLElement>(sel).forEach((el) => (el.textContent = text));
+
+  document.addEventListener("agenda:data", (ev) => {
+    const a = (ev as CustomEvent<Agenda>).detail;
+    if (!a) {
+      set("[data-ls-status]", "Agenda no disponible");
+      return;
+    }
+    set("[data-ls-status]", LABEL[a.status] ?? "Agenda no disponible");
+    document.querySelectorAll<HTMLElement>("[data-ls-dot]").forEach((el) => (el.dataset.state = a.status));
+    set(
+      "[data-ls-next]",
+      a.nextFree
+        ? `${a.nextFree.date === a.today ? "Hoy" : SHORT[new Date(`${a.nextFree.date}T12:00:00Z`).getUTCDay()]} ${formatMinute(a.nextFree.slot.start)}`
+        : "Sin cupos esta semana",
+    );
+    set("[data-ls-free]", String(a.days.reduce((n, d) => n + d.slots.filter((s) => s.state === "free").length, 0)));
+  });
+
+  const fmt = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const tick = () => set("[data-ls-clock]", fmt.format(new Date()));
+  if (document.querySelector("[data-ls-clock]")) {
+    tick();
+    setInterval(tick, 10_000);
+  }
+</script>

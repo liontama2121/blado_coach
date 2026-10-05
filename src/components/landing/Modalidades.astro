@@ -1,0 +1,37 @@
+---
+import Icon from "@/components/Icon.astro";
+import Tape from "@/components/Tape.astro";
+import { modalities } from "@/content/landing";
+---
+
+<section id="modalidades" class="border-t border-line bg-ink py-24 md:py-32" aria-labelledby="mod-title">
+  <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+    <h2 id="mod-title" class="display max-w-[14ch] text-[clamp(3rem,7vw,6rem)] text-bone">
+      ¿Dónde <Tape rotate={-3} class="px-3 align-middle leading-none">entrenas?</Tape>
+    </h2>
+
+    <ol class="mt-16 border-t border-line">
+      {
+        modalities.map((m) => (
+          <li class="mod-row group grid gap-6 border-b border-line py-10 md:grid-cols-12 md:items-start md:gap-8">
+            <div class="flex items-center gap-4 md:col-span-5">
+              <span class="grid size-12 shrink-0 place-items-center border border-line text-lime transition-colors group-hover:border-lime">
+                <Icon name={m.icon} size={24} />
+              </span>
+              <h3 class="display text-[clamp(3rem,6vw,5rem)] text-bone transition-colors group-hover:text-lime">{m.title}</h3>
+            </div>
+            <p class="max-w-[42ch] text-lg leading-relaxed text-mute-2 md:col-span-3">{m.lead}</p>
+            <ul class="grid gap-3 text-bone md:col-span-4">
+              {m.includes.map((item) => (
+                <li class="flex gap-3">
+                  <Icon name="check" size={18} class="mt-1 shrink-0 text-lime" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>

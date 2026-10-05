@@ -1,0 +1,413 @@
+---
+// Design preview C (noindex). Pattern: full-bleed photo hero + live data console (Whoop-like), sticky-stack process.
+export const prerender = true;
+import "@fontsource/sofia-sans-extra-condensed/latin-900.css";
+import Base from "@/layouts/Base.astro";
+import Icon from "@/components/Icon.astro";
+import LiveAgenda from "@/components/live/LiveAgenda.astro";
+import LiveStatus from "@/components/live/LiveStatus.astro";
+import { whatsappUrl } from "@/config/site";
+
+const steps = [
+  { t: "Valoración", d: "Cuestionario de salud, medidas, composición corporal y pruebas físicas. Así sabemos de dónde partes.", img: "/stock/coach-cliente.jpg", alt: "Entrenadora evaluando a un alumno" },
+  { t: "Plan", d: "Entrenamiento según tu objetivo, tus días disponibles y el equipo que tienes en casa o en el gym.", img: "/stock/equipo.jpg", alt: "Mancuernas y banda elástica" },
+  { t: "Medición", d: "Cada 4 semanas repetimos medidas y tomas tus fotos de progreso, privadas.", img: "/stock/casa-mujer.jpg", alt: "Mujer entrenando en casa" },
+  { t: "Ajustes", d: "Con tus números en la mano decidimos el siguiente paso. Check-in semanal en la app.", img: "/stock/box-jumps.jpg", alt: "Dos personas saltando al cajón" },
+];
+---
+
+<Base title="Propuesta C · Consola · Blado" noindex>
+  <div class="C">
+    <header class="c-nav">
+      <a href="#" class="c-logo">Blado</a>
+      <nav aria-label="Principal"><a href="#c-agenda">Agenda</a><a href="#c-proc">Cómo funciona</a><a href="#c-cta">Contacto</a></nav>
+      <a href="#c-cta" class="c-btn c-btn-sm">Agenda tu valoración</a>
+    </header>
+
+    <section class="c-hero" aria-labelledby="c-h1">
+      <img class="c-hero-img" src="/stock/gym-entreno.jpg" alt="Entrenador guiando a una alumna en un peso muerto con mancuerna" fetchpriority="high" />
+      <div class="c-hero-shade"></div>
+      <div class="c-hero-grid">
+        <div class="c-hero-copy">
+          <h1 id="c-h1" class="c-h1">Entrena con intención</h1>
+          <p class="c-lead">Coach personal en Bogotá, en tu casa o en tu gimnasio. Tu progreso medido cada mes.</p>
+          <div class="c-ctas">
+            <a href="#c-cta" class="c-btn">Agenda tu valoración <Icon name="arrowRight" size={18} /></a>
+            <a href={whatsappUrl()} target="_blank" rel="noopener" class="c-link"><Icon name="whatsapp" size={20} /> WhatsApp</a>
+          </div>
+        </div>
+
+        <aside class="c-console" aria-label="El coach en este momento">
+          <div class="c-row">
+            <span>Bogotá</span>
+            <span class="c-clock" data-ls-clock>--:--</span>
+          </div>
+          <div class="c-row c-row-status">
+            <span class="c-dot" data-ls-dot></span>
+            <strong data-ls-status>Consultando agenda</strong>
+          </div>
+          <div class="c-tiles">
+            <div><small>Próximo libre</small><b data-ls-next>...</b></div>
+            <div><small>Libres esta semana</small><b data-ls-free>0</b></div>
+          </div>
+          <a href="#c-agenda" class="c-console-link">Ver agenda completa <Icon name="arrowRight" size={16} /></a>
+        </aside>
+      </div>
+    </section>
+
+    <section id="c-agenda" class="c-sec" aria-labelledby="c-agenda-t">
+      <h2 id="c-agenda-t" class="c-h2">Agenda en vivo</h2>
+      <p class="c-lead">Próximos 7 días, hora de Bogotá. Toca un horario libre y lo apartas por WhatsApp.</p>
+      <div class="c-agenda"><LiveAgenda /></div>
+    </section>
+
+    <section id="c-proc" class="c-sec" aria-labelledby="c-proc-t">
+      <h2 id="c-proc-t" class="c-h2">Cómo funciona</h2>
+      <div class="c-stack">
+        {
+          steps.map((s, i) => (
+            <article class="c-card" style={`--i:${i}`}>
+              <div class="c-card-copy">
+                <span class="c-step tnum">{String(i + 1).padStart(2, "0")}</span>
+                <h3 class="c-h3">{s.t}</h3>
+                <p>{s.d}</p>
+              </div>
+              <img src={s.img} alt={s.alt} loading="lazy" />
+            </article>
+          ))
+        }
+      </div>
+    </section>
+
+    <section id="c-cta" class="c-final" aria-labelledby="c-cta-t">
+      <h2 id="c-cta-t" class="c-h2">Empieza con una valoración</h2>
+      <a href={whatsappUrl()} target="_blank" rel="noopener" class="c-btn">Escríbeme por WhatsApp <Icon name="arrowRight" size={18} /></a>
+    </section>
+    <footer class="c-foot"><span>Fotos de stock temporales (Unsplash)</span><span>Hecho con amor por JuanCode</span></footer>
+  </div>
+  <LiveStatus />
+</Base>
+
+<style is:global>
+  .C {
+    --bg: #08090a;
+    --panel: #121416;
+    --panel2: #181b1e;
+    --fg: #eef0f1;
+    --mute: #959ca1;
+    --line: #23272b;
+    --lime: #c8ff1a;
+    --disp: "Sofia Sans Extra Condensed", "Arial Narrow", sans-serif;
+    --pad: clamp(16px, 4vw, 56px);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .C .la {
+    --la-bg: var(--panel);
+    --la-line: var(--line);
+    --la-display: var(--disp);
+    --la-radius: 14px;
+    --la-slot-radius: 8px;
+  }
+  .C .la-head b {
+    font-weight: 900;
+  }
+  .c-h1,
+  .c-h2,
+  .c-h3,
+  .c-logo {
+    font-family: var(--disp);
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 0.84;
+    letter-spacing: -0.01em;
+    margin: 0;
+  }
+  .C :focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+  .c-nav {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    height: 72px;
+    padding-inline: var(--pad);
+  }
+  .c-nav nav {
+    display: flex;
+    gap: 32px;
+    font-size: 14px;
+  }
+  .c-nav nav a {
+    color: var(--fg);
+    text-decoration: none;
+    opacity: 0.8;
+  }
+  @media (max-width: 860px) {
+    .c-nav nav {
+      display: none;
+    }
+  }
+  .c-logo {
+    font-size: 36px;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .c-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 54px;
+    padding: 0 24px;
+    border-radius: 10px;
+    background: var(--lime);
+    color: #08090a;
+    font: 600 15px/1 var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .c-btn:hover {
+    transform: translateY(-1px);
+  }
+  .c-btn:active {
+    transform: scale(0.98);
+  }
+  .c-btn-sm {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+  .c-link {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1.5px solid currentColor;
+    padding-bottom: 3px;
+  }
+
+  /* hero */
+  .c-hero {
+    position: relative;
+    min-height: 100dvh;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+  .c-hero-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 60% 30%;
+  }
+  .c-hero-shade {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(8, 9, 10, 0.92) 0%, rgba(8, 9, 10, 0.55) 45%, rgba(8, 9, 10, 0.15) 100%),
+      linear-gradient(0deg, rgba(8, 9, 10, 0.9) 0%, transparent 40%);
+  }
+  .c-hero-grid {
+    position: relative;
+    width: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(300px, 380px);
+    align-items: end;
+    gap: 32px;
+    padding: 120px var(--pad) 56px;
+  }
+  @media (max-width: 900px) {
+    .c-hero-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  .c-hero-copy {
+    display: grid;
+    gap: 26px;
+  }
+  .c-h1 {
+    font-size: clamp(5.5rem, 12vw, 13rem);
+    max-width: 9ch;
+  }
+  .c-lead {
+    margin: 0;
+    color: #b9bfc3;
+    font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+    line-height: 1.5;
+    max-width: 44ch;
+  }
+  .c-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 24px;
+  }
+
+  /* console: real live data only */
+  .c-console {
+    background: rgba(18, 20, 22, 0.92);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 20px;
+    display: grid;
+    gap: 16px;
+  }
+  .c-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    color: var(--mute);
+    font-size: 13px;
+  }
+  .c-clock {
+    font: 900 clamp(3.5rem, 5vw, 4.6rem) / 0.9 var(--disp);
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .c-row-status {
+    justify-content: flex-start;
+    gap: 10px;
+    align-items: center;
+    font-size: 16px;
+  }
+  .c-row-status strong {
+    color: var(--fg);
+  }
+  .c-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #6c7277;
+  }
+  .c-dot[data-state="disponible"] {
+    background: var(--lime);
+    box-shadow: 0 0 0 4px rgba(200, 255, 26, 0.18);
+  }
+  .c-dot[data-state="ocupado"] {
+    background: #ff5a36;
+  }
+  .c-tiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .c-tiles div {
+    background: var(--panel2);
+    border-radius: 12px;
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+  }
+  .c-tiles small {
+    color: var(--mute);
+    font-size: 12px;
+  }
+  .c-tiles b {
+    font: 900 2.4rem/0.9 var(--disp);
+    text-transform: uppercase;
+    color: var(--lime);
+    font-variant-numeric: tabular-nums;
+  }
+  .c-console-link {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--fg);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .c-sec {
+    padding: clamp(80px, 10vw, 140px) var(--pad);
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 22px;
+  }
+  .c-h2 {
+    font-size: clamp(4rem, 9vw, 9.5rem);
+  }
+  .c-agenda {
+    margin-top: 20px;
+  }
+
+  /* sticky stack: each step pins and the next slides over it */
+  .c-stack {
+    margin-top: 32px;
+    display: grid;
+    gap: 24px;
+  }
+  .c-card {
+    position: sticky;
+    top: calc(90px + var(--i) * 18px);
+    display: grid;
+    grid-template-columns: 1fr 1.1fr;
+    min-height: 440px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    overflow: hidden;
+  }
+  .c-card-copy {
+    padding: clamp(24px, 3vw, 44px);
+    display: grid;
+    align-content: space-between;
+    gap: 20px;
+  }
+  .c-step {
+    font: 600 14px/1 var(--font-mono);
+    color: var(--lime);
+  }
+  .c-h3 {
+    font-size: clamp(4rem, 7vw, 7rem);
+  }
+  .c-card-copy p {
+    margin: 0;
+    color: var(--mute);
+    max-width: 40ch;
+    font-size: 1.05rem;
+    line-height: 1.5;
+  }
+  .c-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  @media (max-width: 760px) {
+    .c-card {
+      position: relative;
+      top: 0;
+      grid-template-columns: 1fr;
+    }
+    .c-card img {
+      height: 240px;
+    }
+  }
+  .c-final {
+    padding: clamp(80px, 10vw, 140px) var(--pad);
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 32px;
+    justify-items: start;
+  }
+  .c-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px var(--pad);
+    font-size: 13px;
+    color: var(--mute);
+    border-top: 1px solid var(--line);
+  }
+</style>

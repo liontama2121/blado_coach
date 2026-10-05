@@ -1,0 +1,238 @@
+---
+// Rutina: the week strip + the selected day's exercises. Today can be marked as done.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import PlanTabs from "@/components/app/PlanTabs.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { addDays, bogotaParts, mondayOf } from "@/lib/schedule";
+import { getWorkoutLogs, getWorkoutPlan } from "@/lib/server/plans";
+
+const studentId = Astro.locals.user!.studentId!;
+const { date: today, weekday: todayWd } = bogotaParts(new Date());
+const week = mondayOf(today);
+const [plan, logs] = await Promise.all([getWorkoutPlan(env.DB, studentId), getWorkoutLogs(env.DB, studentId, week)]);
+
+const LETTER = ["D", "L", "M", "M", "J", "V", "S"];
+const NAME = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+const order = [1, 2, 3, 4, 5, 6, 0];
+const qp = Number(Astro.url.searchParams.get("dia"));
+const trainingWds = plan?.days.map((d) => d.weekday) ?? [];
+const selectedWd = Number.isInteger(qp) && qp >= 0 && qp <= 6 && Astro.url.searchParams.has("dia")
+  ? qp
+  : trainingWds.includes(todayWd) ? todayWd : (order.find((w) => trainingWds.includes(w) && order.indexOf(w) > order.indexOf(todayWd)) ?? trainingWds[0] ?? todayWd);
+const day = plan?.days.find((d) => d.weekday === selectedWd);
+const dateOf = (wd: number) => addDays(week, order.indexOf(wd));
+const doneOn = (dayId: string, date: string) => logs.find((l) => l.day_id === dayId && l.done_on === date)?.status;
+const isToday = selectedWd === todayWd;
+const todayStatus = day ? doneOn(day.id, today) : undefined;
+const fmtRest = (s: number | null) => (s == null ? "-" : s >= 60 ? `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")} min` : `${s} s`);
+---
+
+<AppShell title="Rutina" tab="plan">
+  <PlanTabs active="rutina" />
+
+  {
+    !plan ? (
+      <section class="card" style="justify-items:center;text-align:center">
+        <Bladimir state="lift" size={140} />
+        <p class="muted">Tu coach está armando tu rutina. Aquí aparecerá apenas esté lista.</p>
+      </section>
+    ) : (
+      <>
+        <section class="card">
+          <h1 class="app-h1" style="font-size:2.6rem">{plan.name}</h1>
+          {plan.notes && <p class="muted text-sm">{plan.notes}</p>}
+          <ol class="week" aria-label="Días de la semana">
+            {order.map((wd) => {
+              const d = plan.days.find((x) => x.weekday === wd);
+              const st = d ? doneOn(d.id, dateOf(wd)) : undefined;
+              return (
+                <li>
+                  <a
+                    href={`/app/plan?dia=${wd}`}
+                    class:list={["wk", d && "wk-train", wd === selectedWd && "wk-sel", wd === todayWd && "wk-today", st && "wk-done"]}
+                    aria-current={wd === selectedWd ? "true" : undefined}
+                    aria-label={`${NAME[wd]}${d ? `: ${d.title}` : ": descanso"}${st ? ", hecho" : ""}`}
+                  >
+                    <span>{LETTER[wd]}</span>
+                    <i aria-hidden="true" />
+                  </a>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+
+        {
+          !day ? (
+            <section class="card" style="grid-template-columns:auto 1fr;align-items:center">
+              <Bladimir state="sleep" size={90} />
+              <div>
+                <h2 class="app-h2">{NAME[selectedWd]}: descanso</h2>
+                <p class="muted">Recuperar también es entrenar. Camina, estira y duerme bien.</p>
+              </div>
+            </section>
+          ) : (
+            <section class="card" aria-labelledby="day-t">
+              <div class="row">
+                <div>
+                  <p class="muted text-sm">{NAME[selectedWd]}{isToday ? " · hoy" : ""} · {day.location === "casa" ? "En casa" : "En gimnasio"}</p>
+                  <h2 id="day-t" class="app-h2" style="font-size:2.4rem">{day.title}</h2>
+                </div>
+                <span class="tag">{day.items.length} ejercicios</span>
+              </div>
+
+              <ol class="ex-list">
+                {day.items.map((it, i) => (
+                  <li class="ex">
+                    <span class="ex-n tnum">{i + 1}</span>
+                    <div class="ex-body">
+                      <h3>{it.name}</h3>
+                      <p class="ex-spec tnum">
+                        <b>{it.sets} × {it.reps}</b>
+                        {it.load_kg != null && <span>· {String(it.load_kg).replace(".", ",")} kg</span>}
+                        <span>· descanso {fmtRest(it.rest_s)}</span>
+                        {it.rir != null && <span>· RIR {it.rir}</span>}
+                      </p>
+                      {it.cue && <p class="muted text-sm">{it.cue}</p>}
+                      {it.notes && <p class="text-sm" style="color:var(--lime)">{it.notes}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ol>
+
+              {isToday ? (
+                <div class="done-row" data-day={day.id}>
+                  {todayStatus ? (
+                    <p class="row"><span class="tag tag-ok">{todayStatus === "hecho" ? "Entreno hecho hoy" : "Entreno parcial hoy"}</span><Bladimir state="flex" size={64} /></p>
+                  ) : (
+                    <>
+                      <button class="pill-btn" data-mark="hecho"><Icon name="check" size={18} /> Terminé el entreno</button>
+                      <button class="pill-btn ghost-btn" data-mark="parcial">Lo hice a medias</button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <p class="muted text-sm">Podrás marcarlo como hecho el {NAME[selectedWd]?.toLowerCase()}.</p>
+              )}
+            </section>
+          )
+        }
+      </>
+    )
+  }
+</AppShell>
+
+<style>
+  .week {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .wk {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 10px 0;
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: none;
+  }
+  .wk i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: transparent;
+  }
+  .wk-train {
+    color: var(--fg);
+  }
+  .wk-train i {
+    background: var(--mute);
+  }
+  .wk-done i {
+    background: var(--lime);
+  }
+  .wk-today {
+    border-color: var(--fg);
+  }
+  .wk-sel {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: #0d0d0d;
+  }
+  .wk-sel i {
+    background: #0d0d0d;
+  }
+  .ex-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .ex {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    background: var(--card2);
+  }
+  .ex-n {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg);
+    color: var(--lime);
+    font: 400 1.4rem/1 var(--disp);
+  }
+  .ex-body {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+  .ex h3 {
+    margin: 0;
+    font: 600 16px/1.3 var(--font-sans);
+  }
+  .ex-spec {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 14px;
+  }
+  .ex-spec b {
+    color: var(--lime);
+  }
+  .done-row {
+    display: grid;
+    gap: 8px;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>("[data-mark]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const row = b.closest<HTMLElement>("[data-day]")!;
+      row.querySelectorAll("button").forEach((x) => (x.disabled = true));
+      const res = await fetch("/api/app/logs", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "workout", id: row.dataset.day, status: b.dataset.mark }),
+      }).catch(() => null);
+      if (res?.ok) location.reload();
+      else row.querySelectorAll("button").forEach((x) => (x.disabled = false));
+    }),
+  );
+</script>

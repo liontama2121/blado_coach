@@ -239,6 +239,18 @@ export function seriesDeltas(series: readonly Num[]): {
   };
 }
 
+// ---------------------------------------------------------------- weight trend
+
+/**
+ * Exponential moving average: the "tendencia" line, so day-to-day water swings
+ * do not discourage anyone. alpha 0.1–0.3; higher reacts faster.
+ */
+export function ema(values: readonly number[], alpha = 0.25): number[] {
+  const out: number[] = [];
+  for (const v of values) out.push(out.length === 0 ? v : alpha * v + (1 - alpha) * out[out.length - 1]!);
+  return out;
+}
+
 // ---------------------------------------------------------------- method pick
 
 export type BodyFatMethod = "bioimpedancia" | "pliegues_jp3" | "pliegues_jp7" | "formula_navy" | "otro";

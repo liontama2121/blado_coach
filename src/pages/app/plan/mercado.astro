@@ -1,0 +1,98 @@
+---
+// Weekly shopping list generated from the published meal plan (recipes expanded to ingredients).
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import PlanTabs from "@/components/app/PlanTabs.astro";
+import { getShoppingList, getWorkoutPlan } from "@/lib/server/plans";
+
+const studentId = Astro.locals.user!.studentId!;
+const workout = await getWorkoutPlan(env.DB, studentId);
+const trainingDays = workout?.days.length ?? 3;
+const rows = await getShoppingList(env.DB, studentId, trainingDays);
+const SECTION: Record<string, string> = { fruver: "Fruver", carnes: "Carnes, huevos y pescado", lacteos: "Lácteos", granos: "Granos", panaderia: "Panadería", despensa: "Despensa" };
+const sections = [...new Set(rows.map((r) => r.section))];
+const qty = (g: number) => (g >= 1000 ? `${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(g / 1000)} kg` : `${Math.round(g / 10) * 10} g`);
+const units = (g: number, ref: number, measure: string) => `≈ ${new Intl.NumberFormat("es-CO", { maximumFractionDigits: 1 }).format(g / ref)} × ${measure}`;
+---
+
+<AppShell title="Mercado" tab="plan">
+  <PlanTabs active="alimentacion" />
+  <section class="card">
+    <h1 class="app-h1" style="font-size:2.6rem">Lista de mercado</h1>
+    <p class="muted text-sm">Para 7 días ({trainingDays} de entreno). Marca lo que ya compraste.</p>
+  </section>
+  {
+    sections.map((s) => (
+      <section class="card" aria-labelledby={`s-${s}`}>
+        <h2 id={`s-${s}`} class="app-h2">{SECTION[s] ?? s}</h2>
+        <ul class="shop">
+          {rows
+            .filter((r) => r.section === s)
+            .map((r, i) => (
+              <li>
+                <label>
+                  <input type="checkbox" data-key={`${s}-${i}-${r.name}`} />
+                  <span>
+                    <strong>{r.name}</strong>
+                    <small class="muted">{units(r.grams, r.refGrams, r.measure)}</small>
+                  </span>
+                  <b class="tnum">{qty(r.grams)}</b>
+                </label>
+              </li>
+            ))}
+        </ul>
+      </section>
+    ))
+  }
+</AppShell>
+
+<style>
+  .shop {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 2px;
+  }
+  .shop label {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+  .shop span {
+    display: grid;
+    gap: 2px;
+  }
+  .shop input {
+    width: 22px;
+    height: 22px;
+    accent-color: var(--lime);
+  }
+  .shop input:checked ~ span strong {
+    text-decoration: line-through;
+    color: var(--mute);
+  }
+</style>
+
+<script>
+  // Checked items are remembered on this phone only.
+  const KEY = "blado-mercado";
+  let saved: Record<string, boolean> = {};
+  try {
+    saved = JSON.parse(localStorage.getItem(KEY) ?? "{}");
+  } catch {}
+  document.querySelectorAll<HTMLInputElement>("input[data-key]").forEach((c) => {
+    c.checked = Boolean(saved[c.dataset.key!]);
+    c.addEventListener("change", () => {
+      saved[c.dataset.key!] = c.checked;
+      try {
+        localStorage.setItem(KEY, JSON.stringify(saved));
+      } catch {}
+    });
+  });
+</script>

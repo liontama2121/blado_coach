@@ -1,0 +1,18 @@
+---
+// Landing page for the no-JavaScript form submission.
+export const prerender = true;
+import Base from "@/layouts/Base.astro";
+import Icon from "@/components/Icon.astro";
+import { whatsappUrl } from "@/config/site";
+---
+
+<Base title="Recibimos tus datos · Blado" noindex>
+  <main class="mx-auto grid min-h-[100dvh] max-w-[1400px] content-center gap-8 px-4 md:px-8">
+    <h1 class="display text-[clamp(4rem,12vw,9rem)] text-bone">Listo<span class="text-lime">.</span></h1>
+    <p class="max-w-[46ch] text-lg text-mute-2">Recibí tus datos. Te escribo por WhatsApp para acordar el día de tu valoración.</p>
+    <div class="flex flex-wrap gap-3">
+      <a href="/" class="btn btn-ghost">Volver al inicio</a>
+      <a href={whatsappUrl()} target="_blank" rel="noopener" class="btn btn-lime"><Icon name="whatsapp" size={20} /> WhatsApp</a>
+    </div>
+  </main>
+</Base>

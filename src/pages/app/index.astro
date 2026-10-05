@@ -1,0 +1,190 @@
+---
+// "Hoy": everything the student needs today, in one place.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { bogotaParts, formatMinute } from "@/lib/schedule";
+import { GOAL_LABEL, getMeasurements, getPhotoStatus, getSessions, getStudent, getWeekCheckin, nextMeasurementDue } from "@/lib/server/student";
+import { SLOT_LABEL, getMealLogs, getMealPlan, getWorkoutLogs, getWorkoutPlan, mealsFor } from "@/lib/server/plans";
+
+const studentId = Astro.locals.user!.studentId!;
+const now = new Date();
+const [student, measurements, sessions, checkin, photos] = await Promise.all([
+  getStudent(env.DB, studentId),
+  getMeasurements(env.DB, studentId),
+  getSessions(env.DB, studentId, now.toISOString()),
+  getWeekCheckin(env.DB, studentId, now),
+  getPhotoStatus(env.DB, studentId, now),
+]);
+
+const { minute, date: today, weekday } = bogotaParts(now);
+const [workout, mealPlan, mealLogs, wLogs] = await Promise.all([
+  getWorkoutPlan(env.DB, studentId),
+  getMealPlan(env.DB, studentId),
+  getMealLogs(env.DB, studentId, today),
+  getWorkoutLogs(env.DB, studentId, today),
+]);
+const todayWorkout = workout?.days.find((d) => d.weekday === weekday);
+const workoutDone = todayWorkout ? wLogs.find((l) => l.day_id === todayWorkout.id)?.status : undefined;
+const todayMeals = mealPlan ? mealsFor(mealPlan, todayWorkout ? "entreno" : "descanso") : [];
+const mealsDone = todayMeals.filter((m) => mealLogs.get(m.id) === "cumpli").length;
+const nextMeal = todayMeals.find((m) => !mealLogs.has(m.id));
+const hour = Math.floor(minute / 60);
+const hello = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
+const first = (student?.full_name ?? "").split(" ")[0];
+const next = sessions[0];
+const nextParts = next ? bogotaParts(new Date(next.starts_at)) : null;
+const last = measurements.at(-1);
+const due = nextMeasurementDue(last?.measured_on);
+const dueSoon = due ? due <= today : false;
+
+// What Bladimir says first: the most useful pending thing.
+const greet = !checkin.done
+  ? { state: "point", text: `${hello}, ${first}. Te falta el check-in de esta semana, es menos de un minuto.` }
+  : photos.consent && photos.count < 3
+    ? { state: "selfie", text: `${hello}, ${first}. Toca la foto del mes cuando puedas.` }
+    : next
+      ? { state: "lift", text: `${hello}, ${first}. Tu próxima sesión ya está en la agenda.` }
+      : { state: "wave", text: `${hello}, ${first}. Vamos con toda hoy.` };
+---
+
+<AppShell title="Hoy" tab="hoy">
+  <form slot="top" action="/api/auth/logout" method="post">
+    <button class="tag" style="border:0;cursor:pointer" aria-label="Cerrar sesión"><Icon name="logout" size={16} /></button>
+  </form>
+
+  <section class="hoy-hero card" aria-labelledby="hoy-title">
+    <div class="hoy-hero-grid">
+      <Bladimir state={greet.state as never} size={112} class="hoy-face" />
+      <div class="grid gap-2">
+        <h1 id="hoy-title" class="app-h1">{hello}, {first}</h1>
+        <p class="muted" aria-live="polite">{greet.text}</p>
+      </div>
+    </div>
+    {student && <p class="muted text-sm">Objetivo: <strong style="color:var(--fg)">{GOAL_LABEL[student.goal_type]}</strong>{student.goal_text ? ` · ${student.goal_text}` : ""}</p>}
+  </section>
+
+  {
+    !checkin.done && (
+      <a href="/app/checkin" class="card card-lime" style="text-decoration:none">
+        <div class="row">
+          <div class="grid gap-1">
+            <h2 class="app-h2">Check-in semanal</h2>
+            <p class="muted">Energía, sueño, entrenos y comida. Menos de un minuto.</p>
+          </div>
+          <Icon name="arrowRight" size={28} />
+        </div>
+      </a>
+    )
+  }
+
+  <a href="/app/plan" class="card today-card" aria-labelledby="wo-t">
+    <div class="row">
+      <h2 id="wo-t" class="app-h2">Entreno de hoy</h2>
+      {workoutDone ? <span class="tag tag-ok">Hecho</span> : todayWorkout ? <span class="tag tag-wait">Pendiente</span> : <span class="tag">Descanso</span>}
+    </div>
+    {todayWorkout ? (
+      <p><strong style="font-size:1.1rem">{todayWorkout.title}</strong> <span class="muted">· {todayWorkout.items.length} ejercicios · {todayWorkout.location === "casa" ? "en casa" : "en gimnasio"}</span></p>
+    ) : (
+      <p class="muted">Hoy toca recuperar. Camina, estira y duerme bien.</p>
+    )}
+  </a>
+
+  <a href="/app/plan/alimentacion" class="card today-card" aria-labelledby="fo-t">
+    <div class="row">
+      <h2 id="fo-t" class="app-h2">Comidas de hoy</h2>
+      <span class="tag">{mealsDone}/{todayMeals.length} cumplidas</span>
+    </div>
+    {mealPlan ? (
+      <>
+        <div class="meal-dots" aria-hidden="true">{todayMeals.map((m) => <i class:list={[mealLogs.get(m.id) === "cumpli" && "ok", mealLogs.get(m.id) === "parcial" && "half"]} />)}</div>
+        <p class="muted">{nextMeal ? <>Sigue: <strong style="color:var(--fg)">{SLOT_LABEL[nextMeal.slot]}</strong> · {nextMeal.items.map((i) => i.name).slice(0, 2).join(", ")}</> : "¡Todas marcadas por hoy!"}</p>
+      </>
+    ) : (
+      <p class="muted">Tu plan de alimentación está en preparación.</p>
+    )}
+  </a>
+
+  <section class="card" aria-labelledby="next-t">
+    <div class="row">
+      <h2 id="next-t" class="app-h2">Próxima sesión</h2>
+      <a href="/app/plan" class="tag">Agenda</a>
+    </div>
+    {
+      next && nextParts ? (
+        <div class="row">
+          <div>
+            <p class="big-num">{formatMinute(nextParts.minute)}</p>
+            <p class="muted">{formatDate(nextParts.date)} · {next.location === "casa" ? "En casa" : "En gimnasio"}</p>
+          </div>
+          <span class:list={["tag", next.status === "confirmada" ? "tag-ok" : "tag-wait"]}>{next.status === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
+        </div>
+      ) : (
+        <div class="row">
+          <p class="muted">No tienes sesiones agendadas.</p>
+          <a href="/app/plan" class="pill-btn">Pedir sesión</a>
+        </div>
+      )
+    }
+  </section>
+
+  <div class="hoy-grid">
+    <section class="card" aria-labelledby="ci-t">
+      <h2 id="ci-t" class="app-h2">Check-in</h2>
+      {checkin.done ? <span class="tag tag-ok">Listo esta semana</span> : <span class="tag tag-wait">Pendiente</span>}
+    </section>
+    <section class="card" aria-labelledby="ph-t">
+      <h2 id="ph-t" class="app-h2">Fotos del mes</h2>
+      {!photos.consent ? <span class="tag">Sin activar</span> : photos.count >= 3 ? <span class="tag tag-ok">Completas</span> : <span class="tag tag-wait">{photos.count}/3</span>}
+    </section>
+    <section class="card" aria-labelledby="me-t">
+      <h2 id="me-t" class="app-h2">Medición</h2>
+      {due ? <span class:list={["tag", dueSoon ? "tag-wait" : ""]}>{dueSoon ? "Toca ya" : formatDate(due)}</span> : <span class="tag">Sin datos</span>}
+    </section>
+    <a href="/app/progreso" class="card" aria-label="Ver progreso" style="text-decoration:none;color:inherit">
+      <h2 class="app-h2">Progreso</h2>
+      <span class="tag">Ver bitácora</span>
+    </a>
+  </div>
+</AppShell>
+
+<style>
+  .hoy-hero-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 14px;
+  }
+  .today-card {
+    text-decoration: none;
+    color: inherit;
+  }
+  .meal-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .meal-dots i {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--card2);
+  }
+  .meal-dots i.ok {
+    background: var(--lime);
+  }
+  .meal-dots i.half {
+    background: #ffd166;
+  }
+  .hoy-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .hoy-grid .card {
+    min-height: 110px;
+    align-content: space-between;
+  }
+</style>

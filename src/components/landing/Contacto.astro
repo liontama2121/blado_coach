@@ -1,0 +1,150 @@
+---
+import Icon from "@/components/Icon.astro";
+import { site, whatsappUrl } from "@/config/site";
+import { goalOptions, modalityOptions } from "@/content/landing";
+
+const field = "w-full border border-line bg-ink px-4 py-3.5 text-bone placeholder:text-mute-2 transition-colors focus:border-lime focus:outline-none aria-[invalid=true]:border-alert";
+---
+
+<section id="contacto" class="border-t border-line bg-ink py-24 md:py-32" aria-labelledby="contact-title">
+  <div class="mx-auto grid max-w-[1400px] gap-14 px-4 md:grid-cols-12 md:gap-8 md:px-8">
+    <div class="grid content-start gap-8 md:col-span-5">
+      <h2 id="contact-title" class="display text-[clamp(3.5rem,8vw,7rem)] text-bone">
+        Agenda tu <span class="tape px-2 leading-none" style="--rot:-2deg">valoración.</span>
+      </h2>
+      <p class="max-w-[42ch] text-lg leading-relaxed text-mute-2">
+        Déjame tus datos y te escribo para acordar el día. Si prefieres, escríbeme directo.
+      </p>
+      <div class="grid gap-4">
+        <a href={whatsappUrl()} target="_blank" rel="noopener" class="btn btn-ghost w-fit">
+          <Icon name="whatsapp" size={20} /> Escríbeme por WhatsApp
+        </a>
+        <ul class="flex gap-3" aria-label="Redes sociales">
+          <li>
+            <a href={site.social.instagram} target="_blank" rel="noopener" class="grid size-12 place-items-center border border-line text-mute-2 transition-colors hover:border-lime hover:text-lime" aria-label="Instagram de Blado">
+              <Icon name="instagram" size={22} />
+            </a>
+          </li>
+          <li>
+            <a href={site.social.tiktok} target="_blank" rel="noopener" class="grid size-12 place-items-center border border-line text-mute-2 transition-colors hover:border-lime hover:text-lime" aria-label="TikTok de Blado">
+              <Icon name="tiktok" size={22} />
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <form id="lead-form" action="/api/leads" method="post" class="grid gap-6 md:col-span-6 md:col-start-7" novalidate>
+      <div class="grid gap-2">
+        <label for="lead-name" class="text-sm font-medium text-bone">Nombre</label>
+        <input id="lead-name" name="name" type="text" autocomplete="name" required maxlength="120" class={field} aria-describedby="err-name" />
+        <p id="err-name" class="text-sm text-alert" data-error="name"></p>
+      </div>
+
+      <div class="grid gap-2">
+        <label for="lead-phone" class="text-sm font-medium text-bone">Teléfono o WhatsApp</label>
+        <input id="lead-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required placeholder="310 482 1967" class={field} aria-describedby="err-phone" />
+        <p id="err-phone" class="text-sm text-alert" data-error="phone"></p>
+      </div>
+
+      <div class="grid gap-2">
+        <label for="lead-goal" class="text-sm font-medium text-bone">¿Cuál es tu objetivo?</label>
+        <select id="lead-goal" name="goal" required class={field} aria-describedby="err-goal">
+          <option value="">Elige una opción</option>
+          {goalOptions.map((g) => <option value={g.value}>{g.label}</option>)}
+        </select>
+        <p id="err-goal" class="text-sm text-alert" data-error="goal"></p>
+      </div>
+
+      <fieldset class="grid gap-2" aria-describedby="err-modality">
+        <legend class="mb-2 text-sm font-medium text-bone">¿Dónde prefieres entrenar?</legend>
+        <div class="grid grid-cols-2 gap-px bg-line sm:grid-cols-4">
+          {
+            modalityOptions.map((m) => (
+              <label class="cursor-pointer bg-ink">
+                <input type="radio" name="modality" value={m.value} class="peer sr-only" required />
+                <span class="block px-3 py-3.5 text-center text-sm text-mute-2 transition-colors peer-checked:bg-lime peer-checked:font-semibold peer-checked:text-ink peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-lime hover:text-bone">
+                  {m.label}
+                </span>
+              </label>
+            ))
+          }
+        </div>
+        <p id="err-modality" class="text-sm text-alert" data-error="modality"></p>
+      </fieldset>
+
+      <!-- Honeypot for bots. Hidden from people and assistive tech. -->
+      <div class="absolute -left-[9999px]" aria-hidden="true">
+        <label for="lead-website">No llenar</label>
+        <input id="lead-website" name="website" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="grid gap-2">
+        <label class="flex items-start gap-3 text-sm leading-relaxed text-mute-2">
+          <input type="checkbox" name="consent" required class="mt-1 size-4 shrink-0 accent-[#c8ff1a]" aria-describedby="err-consent" />
+          <span>
+            Autorizo a Blado a guardar mis datos para contactarme, según la <a href="/privacidad" class="text-bone underline">política de tratamiento de datos</a> (Ley 1581 de 2012).
+          </span>
+        </label>
+        <p id="err-consent" class="text-sm text-alert" data-error="consent"></p>
+      </div>
+
+      <p class="text-sm text-alert" data-error="form" role="alert"></p>
+
+      <button type="submit" class="btn btn-lime w-full justify-center py-4 text-base disabled:cursor-wait disabled:opacity-60 sm:w-fit">
+        <span data-label>Quiero mi valoración</span>
+        <Icon name="arrowRight" size={18} />
+      </button>
+    </form>
+
+    <div id="lead-success" class="hidden content-start gap-4 border border-lime p-8 md:col-span-6 md:col-start-7" role="status" tabindex="-1">
+      <p class="display text-5xl text-lime">Listo.</p>
+      <p class="text-lg text-bone">Recibí tus datos. Te escribo por WhatsApp para acordar el día de tu valoración.</p>
+    </div>
+  </div>
+</section>
+
+<script>
+  const form = document.getElementById("lead-form") as HTMLFormElement | null;
+  const success = document.getElementById("lead-success");
+  if (form && success) {
+    const btn = form.querySelector<HTMLButtonElement>("button[type=submit]")!;
+    const label = btn.querySelector<HTMLElement>("[data-label]")!;
+
+    const setErrors = (errors: Record<string, string>) => {
+      form.querySelectorAll<HTMLElement>("[data-error]").forEach((el) => {
+        const key = el.dataset.error!;
+        el.textContent = errors[key] ?? "";
+        form.querySelectorAll(`[name="${key}"]`).forEach((input) => input.setAttribute("aria-invalid", String(Boolean(errors[key]))));
+      });
+      const first = Object.keys(errors).find((k) => k !== "form");
+      if (first) form.querySelector<HTMLElement>(`[name="${first}"]`)?.focus();
+    };
+
+    form.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      btn.disabled = true;
+      label.textContent = "Enviando…";
+      try {
+        const res = await fetch(form.action, {
+          method: "POST",
+          body: new FormData(form),
+          headers: { accept: "application/json" },
+        });
+        const data = (await res.json()) as { ok: boolean; errors?: Record<string, string> };
+        if (data.ok) {
+          form.hidden = true;
+          success.classList.replace("hidden", "grid");
+          success.focus();
+          return;
+        }
+        setErrors(data.errors ?? { form: "No se pudo enviar. Intenta de nuevo." });
+      } catch {
+        setErrors({ form: "Sin conexión. Revisa tu internet o escríbeme por WhatsApp." });
+      } finally {
+        btn.disabled = false;
+        label.textContent = "Quiero mi valoración";
+      }
+    });
+  }
+</script>

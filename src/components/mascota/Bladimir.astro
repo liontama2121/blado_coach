@@ -1,0 +1,174 @@
+---
+/**
+ * Coach Bladimir: monoline portrait (15 strokes) with swappable expressions and
+ * line-art accessories. Animated by ./controller.ts (anime.js). Color = currentColor.
+ *
+ * Usage: <Bladimir state="wave" size={120} label="..." />
+ * Any element with [data-bladimir] is auto-mounted; change state with
+ *   el.dispatchEvent(new CustomEvent("bladimir:state", { detail: "celebrate" }))
+ */
+import type { MascotState } from "./states";
+import { STATE_LABEL } from "./states";
+
+interface Props {
+  state?: MascotState | "watch" | "cover" | "peek";
+  size?: number | string;
+  class?: string;
+  label?: string;
+  /** Direction for the "point" state. */
+  dir?: "left" | "right";
+}
+const { state = "idle", size = 160, class: className = "", label, dir = "right" } = Astro.props;
+const w = typeof size === "number" ? `${size}px` : size;
+---
+
+<span
+  class:list={["bladimir", className]}
+  data-bladimir
+  data-state={state}
+  data-dir={dir}
+  style={`--bl-size:${w}`}
+>
+  <svg viewBox="40 40 432 440" role="img" aria-label={label ?? (state in STATE_LABEL ? STATE_LABEL[state as MascotState] : "Bladimir")} fill="none" stroke="currentColor" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+    <g class="bl-body">
+      <!-- neck -->
+      <g class="bl-neck">
+        <path d="M226 386 Q226 432 196 458" />
+        <path d="M286 386 Q286 432 316 458" />
+      </g>
+      <g class="bl-head">
+        <g class="bl-hair">
+          <path d="M174 238 Q160 214 168 196 A20 20 0 0 1 166 160 A24 24 0 0 1 190 126 A26 26 0 0 1 222 100 A36 36 0 0 1 290 100 A26 26 0 0 1 322 126 A24 24 0 0 1 346 160 A20 20 0 0 1 344 196 Q352 214 338 238" />
+          <path class="bl-curl" d="M212 150 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7" />
+          <path class="bl-curl" d="M254 122 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7" />
+          <path class="bl-curl" d="M296 150 a5 5 0 1 0 9 3 a11 11 0 1 0 -21 -5 a17 17 0 1 0 32 7" />
+        </g>
+        <path d="M176 244 Q172 304 196 344 Q206 362 220 364 Q226 380 242 380 Q250 394 256 394 Q262 394 270 380 Q286 380 292 364 Q306 362 316 344 Q340 304 336 244" />
+        <path d="M184 264 Q192 300 212 310 Q236 294 256 304 Q276 294 300 310 Q320 300 328 264" />
+        <path d="M250 360 a7 7 0 1 1 12 4" />
+        <path d="M254 240 Q246 274 262 282" />
+
+        <g class="bl-brow bl-brow-l"><path d="M198 228 Q218 214 240 224" /></g>
+        <g class="bl-brow bl-brow-r"><path d="M314 228 Q294 214 272 224" /></g>
+
+        <!-- eyes: happy (default), open, closed -->
+        <g class="bl-eyes">
+          <g class="bl-x bl-eyes-happy"><path d="M212 252 Q220 246 228 252" /><path d="M300 252 Q292 246 284 252" /></g>
+          <g class="bl-x bl-eyes-open"><circle cx="220" cy="250" r="4.5" /><circle cx="292" cy="250" r="4.5" /></g>
+          <g class="bl-x bl-eyes-closed"><path d="M212 250 Q220 256 228 250" /><path d="M300 250 Q292 256 284 250" /></g>
+          <g class="bl-x bl-eyes-up"><circle cx="222" cy="244" r="4.5" /><circle cx="294" cy="244" r="4.5" /></g>
+        </g>
+
+        <!-- mouths -->
+        <g class="bl-mouth">
+          <path class="bl-x bl-m-smile" d="M228 324 Q256 344 284 324" />
+          <path class="bl-x bl-m-grin" d="M226 320 Q256 358 286 320 Z" />
+          <circle class="bl-x bl-m-o" cx="256" cy="330" r="9" />
+          <path class="bl-x bl-m-soft" d="M236 332 Q256 338 276 332" />
+          <path class="bl-x bl-m-flat" d="M240 330 Q256 332 272 328" />
+          <path class="bl-x bl-m-sleep" d="M246 330 Q256 334 266 330" />
+        </g>
+      </g>
+    </g>
+
+    <!-- accessories (line art, same stroke) -->
+    <g class="bl-acc bl-acc-hand"><path d="M372 312 Q362 276 372 252 L372 214 M388 250 L388 200 M404 252 L404 204 M420 262 L420 222 M372 312 Q398 334 424 306 Q434 286 420 262 M372 262 Q356 246 346 262" /></g>
+    <g class="bl-acc bl-acc-point"><path d="M362 260 H452 M428 236 L452 260 L428 284" /></g>
+    <g class="bl-acc bl-acc-dumbbell"><path d="M364 208 H456 M376 186 V230 M444 186 V230 M362 196 V220 M458 196 V220" /></g>
+    <g class="bl-acc bl-acc-phone">
+      <rect x="380" y="178" width="58" height="98" rx="12" />
+      <path d="M402 192 H416" />
+      <circle class="bl-flash" cx="409" cy="160" r="30" fill="currentColor" stroke="none" opacity="0" />
+    </g>
+    <g class="bl-acc bl-acc-bottle"><path d="M398 166 H420 M402 166 V182 Q386 190 386 206 V292 Q386 302 396 302 H422 Q432 302 432 292 V206 Q432 190 416 182 V166 M386 236 H432" /></g>
+    <g class="bl-acc bl-acc-pot">
+      <path d="M366 256 H452 V288 Q452 304 436 304 H382 Q366 304 366 288 Z M354 262 H366 M452 262 H464" />
+      <path class="bl-steam" d="M392 238 q-8 -12 0 -24 q8 -12 0 -24 M424 238 q-8 -12 0 -24 q8 -12 0 -24" />
+    </g>
+    <g class="bl-acc bl-acc-confetti">
+      <path d="M96 140 L112 120 M128 96 L136 74 M84 196 L60 188 M412 120 L396 100 M384 84 L376 62 M428 188 L452 180" />
+      <circle cx="150" cy="70" r="5" /><circle cx="362" cy="56" r="5" /><circle cx="70" cy="250" r="5" /><circle cx="446" cy="244" r="5" />
+    </g>
+    <g class="bl-acc bl-acc-sparkle"><path d="M118 136 V164 M104 150 H132 M394 116 V140 M382 128 H406" /></g>
+    <g class="bl-acc bl-acc-dots"><circle cx="372" cy="170" r="5" /><circle cx="392" cy="146" r="7" /><circle cx="418" cy="118" r="9" /></g>
+    <g class="bl-acc bl-acc-zzz"><path d="M372 168 h22 l-22 26 h22 M408 124 h16 l-16 18 h16 M434 90 h12 l-12 14 h12" /></g>
+    <g class="bl-acc bl-acc-clap"><path d="M112 300 L92 290 M116 326 L92 330 M400 300 L420 290 M396 326 L420 330" /></g>
+
+    <!-- hands for the login screen: cover / peek. Filled with the background so they hide the eyes. -->
+    <g class="bl-hands">
+      <g transform="translate(214 268) rotate(-6) scale(0.92)">
+        <g class="bl-hand bl-hand-l">
+          <path class="bl-hand-shape" d="M-26 34 Q-34 10 -30 -18 Q-29 -30 -20 -30 Q-12 -30 -12 -20 L-12 -40 Q-12 -50 -2 -50 Q8 -50 8 -40 L8 -36 Q9 -44 17 -44 Q26 -44 26 -34 L26 6 Q34 -2 40 6 Q44 12 36 22 L22 38 Q12 46 -4 46 Q-20 46 -26 34 Z" />
+          <path d="M-12 -20 V4 M8 -36 V2" />
+        </g>
+      </g>
+      <g transform="translate(298 268) scale(-0.92 0.92) rotate(-6)">
+        <g class="bl-hand bl-hand-r">
+          <path class="bl-hand-shape" d="M-26 34 Q-34 10 -30 -18 Q-29 -30 -20 -30 Q-12 -30 -12 -20 L-12 -40 Q-12 -50 -2 -50 Q8 -50 8 -40 L8 -36 Q9 -44 17 -44 Q26 -44 26 -34 L26 6 Q34 -2 40 6 Q44 12 36 22 L22 38 Q12 46 -4 46 Q-20 46 -26 34 Z" />
+          <path d="M-12 -20 V4 M8 -36 V2" />
+        </g>
+      </g>
+    </g>
+  </svg>
+</span>
+
+<style is:global>
+  .bladimir {
+    display: inline-block;
+    width: var(--bl-size);
+    height: var(--bl-size);
+    color: var(--color-lime, #c6ff00);
+    line-height: 0;
+  }
+  .bladimir svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .bladimir .bl-body,
+  .bladimir .bl-head,
+  .bladimir .bl-brow,
+  .bladimir .bl-eyes,
+  .bladimir .bl-acc,
+  .bladimir .bl-curl,
+  .bladimir .bl-steam,
+  .bladimir .bl-flash {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .bladimir .bl-body {
+    transform-origin: 50% 100%;
+  }
+  .bladimir .bl-acc-hand {
+    transform-origin: 30% 95%;
+  }
+  .bladimir .bl-acc-bottle {
+    transform-origin: 20% 90%;
+  }
+  .bladimir[data-dir="left"] .bl-acc-point {
+    transform: scaleX(-1) translateX(270px);
+  }
+  .bladimir .bl-hand {
+    transform-box: fill-box;
+    transform-origin: 50% 100%;
+    transform: translateY(190px);
+    opacity: 0;
+  }
+  .bladimir .bl-hand-shape {
+    fill: var(--bl-bg, #0d0d0d);
+  }
+  /* Static fallback (no JS / before mount): show the default expression only. */
+  .bladimir .bl-x,
+  .bladimir .bl-acc {
+    opacity: 0;
+  }
+  .bladimir .bl-eyes-happy,
+  .bladimir .bl-m-smile {
+    opacity: 1;
+  }
+</style>
+
+<script>
+  import { mountAll } from "./controller";
+  mountAll();
+</script>

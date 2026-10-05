@@ -140,3 +140,14 @@ describe("deltas y tendencia", () => {
     expect(trend(null, 0.3)).toBe("sin_dato");
   });
 });
+
+import { ema } from "../src/lib/metrics";
+describe("ema (tendencia de peso)", () => {
+  it("smooths spikes and starts at the first value", () => {
+    const t = ema([80, 82, 80, 80], 0.5);
+    expect(t[0]).toBe(80);
+    expect(t[1]).toBe(81);
+    expect(t[2]).toBe(80.5);
+    expect(ema([], 0.3)).toEqual([]);
+  });
+});

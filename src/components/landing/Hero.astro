@@ -1,0 +1,204 @@
+---
+import Icon from "@/components/Icon.astro";
+import Tape from "@/components/Tape.astro";
+import { whatsappUrl } from "@/config/site";
+
+const band = ["En casa", "En gimnasio", "Online", "Medidas cada mes", "Fotos de progreso", "Check-in semanal"];
+---
+
+<section class="relative isolate flex min-h-[100dvh] flex-col overflow-hidden bg-ink" aria-labelledby="hero-title">
+  <div class="relative z-10 mx-auto grid w-full max-w-[1400px] flex-1 content-end gap-10 px-4 pb-14 pt-28 md:grid-cols-12 md:gap-8 md:px-8 md:pb-20">
+    <!-- Wordmark crossed by tape -->
+    <div class="relative md:col-span-8">
+      <p class="wordmark display select-none text-bone" aria-hidden="true">Blado</p>
+
+      <div class="tape-x pointer-events-none absolute inset-0" aria-hidden="true">
+        <Tape rotate={-9} class="tape-x-a" from="left">
+          <span class="display text-[clamp(1.4rem,2.6vw,2.4rem)]">En casa · En gym · Online</span>
+        </Tape>
+      </div>
+
+      <h1 id="hero-title" class="display relative mt-6 max-w-[16ch] text-[clamp(2.6rem,5.2vw,4.75rem)] text-bone">
+        Entrena con <span class="text-lime">intención.</span>
+      </h1>
+      <p class="mt-4 max-w-[46ch] text-lg leading-relaxed text-mute-2">
+        Coach personal en Bogotá, en tu casa o en tu gimnasio. Medimos tu progreso cada mes.
+      </p>
+
+      <div class="mt-8 flex flex-wrap items-center gap-5">
+        <Tape href="#contacto" rotate={-2.5} class="cta-tape px-6 py-4">
+          <span class="display text-[clamp(1.6rem,2.4vw,2.2rem)]">Agenda tu valoración</span>
+          <Icon name="arrowRight" size={24} />
+        </Tape>
+        <a href={whatsappUrl()} class="btn btn-ghost" target="_blank" rel="noopener">
+          <Icon name="whatsapp" size={20} /> WhatsApp
+        </a>
+      </div>
+    </div>
+
+    <!-- Live status: the coach right now -->
+    <aside class="md:col-span-4 md:self-end" aria-labelledby="live-title">
+      <div class="live-card grid gap-5 border border-line bg-graphite p-6">
+        <div class="flex items-center justify-between gap-4">
+          <h2 id="live-title" class="font-mono text-xs uppercase tracking-[0.08em] text-mute-2">Coach, ahora</h2>
+          <span class="font-mono text-xs text-mute-2">Bogotá</span>
+        </div>
+        <p class="display tnum text-[clamp(3.5rem,6vw,5rem)] leading-none text-bone" data-live-clock aria-live="off">--:--</p>
+        <p class="flex items-center gap-3 text-lg text-bone" aria-live="polite">
+          <span class="status-dot" data-live-dot></span>
+          <span data-live-status class="typing">Consultando agenda</span>
+        </p>
+        <div class="grid gap-2 border-t border-line pt-5">
+          <span class="text-sm text-mute-2">Próximo horario libre</span>
+          <a href="#agenda" class="next-free display text-3xl text-lime hover:text-bone" data-live-next>Ver agenda</a>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <div id="hero-sentinel" class="absolute bottom-24 h-px w-px" aria-hidden="true"></div>
+
+  <!-- Line-up band: one long strip of tape across the page -->
+  <div class="band relative z-10 -mx-4 overflow-hidden" aria-label="Modalidades y servicios">
+    <div class="tape band-tape">
+      <ul class="marquee display flex w-max items-center gap-10 py-3 text-[clamp(1.7rem,3.6vw,3rem)]">
+        {
+          [...band, ...band].map((item, i) => (
+            <li class="flex items-center gap-10" aria-hidden={i >= band.length ? "true" : undefined}>
+              {item}
+              <span class="block size-2.5 rotate-45 bg-ink" aria-hidden="true" />
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>
+
+<style>
+  .wordmark {
+    font-size: clamp(7.5rem, 27vw, 24rem);
+    line-height: 0.78;
+    letter-spacing: -0.02em;
+  }
+  :global(.tape-x-a) {
+    position: absolute;
+    left: -4%;
+    top: clamp(2.2rem, 9vw, 8.5rem);
+    padding: 0.7rem 2.2rem;
+    white-space: nowrap;
+  }
+  .band {
+    transform: rotate(-1.4deg);
+    margin-bottom: 1.5rem;
+  }
+  .band-tape {
+    display: block;
+    width: 110%;
+    margin-left: -5%;
+    border-radius: 0;
+  }
+  .marquee {
+    animation: marquee 40s linear infinite;
+  }
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-mute);
+    flex: none;
+  }
+  .status-dot[data-state="disponible"] {
+    background: var(--color-lime);
+    box-shadow: 0 0 0 4px rgba(200, 255, 26, 0.18);
+  }
+  .status-dot[data-state="ocupado"] {
+    background: var(--color-alert);
+  }
+  .typing::after {
+    content: "";
+    display: inline-block;
+    width: 0.55ch;
+    height: 1.05em;
+    margin-left: 2px;
+    vertical-align: -0.15em;
+    background: currentColor;
+    animation: caret 1s steps(2) infinite;
+  }
+  @keyframes caret {
+    50% {
+      opacity: 0;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .marquee,
+    .typing::after {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  import { formatMinute } from "@/lib/schedule";
+
+  const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const LABEL: Record<string, string> = {
+    disponible: "Disponible ahora",
+    ocupado: "En sesión",
+    fuera_de_horario: "Fuera de horario",
+  };
+  const clock = document.querySelector<HTMLElement>("[data-live-clock]");
+  const statusEl = document.querySelector<HTMLElement>("[data-live-status]");
+  const dot = document.querySelector<HTMLElement>("[data-live-dot]");
+  const next = document.querySelector<HTMLAnchorElement>("[data-live-next]");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const fmt = new Intl.DateTimeFormat("es-CO", { timeZone: "America/Bogota", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const tickClock = () => clock && (clock.textContent = fmt.format(new Date()));
+
+  let typingTimer: number | undefined;
+  function typeStatus(text: string) {
+    if (!statusEl || statusEl.dataset.text === text) return;
+    statusEl.dataset.text = text;
+    clearInterval(typingTimer);
+    if (reduce) {
+      statusEl.textContent = text;
+      return;
+    }
+    let i = 0;
+    statusEl.textContent = "";
+    typingTimer = window.setInterval(() => {
+      statusEl.textContent = text.slice(0, ++i);
+      if (i >= text.length) clearInterval(typingTimer);
+    }, 45);
+  }
+
+  type Agenda = {
+    today: string;
+    status: string;
+    nextFree: { date: string; slot: { start: number } } | null;
+  };
+
+  function onAgenda(data: Agenda) {
+    typeStatus(LABEL[data.status] ?? "Agenda no disponible");
+    if (dot) dot.dataset.state = data.status;
+    if (next) {
+      if (data.nextFree) {
+        const wd = new Date(`${data.nextFree.date}T12:00:00Z`).getUTCDay();
+        const day = data.nextFree.date === data.today ? "Hoy" : DAYS[wd];
+        next.textContent = `${day} ${formatMinute(data.nextFree.slot.start)}`;
+      } else {
+        next.textContent = "Ver agenda";
+      }
+    }
+  }
+
+  document.addEventListener("agenda:data", (ev) => onAgenda((ev as CustomEvent<Agenda>).detail));
+  tickClock();
+  setInterval(tickClock, 15_000);
+</script>

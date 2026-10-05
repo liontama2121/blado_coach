@@ -1,0 +1,69 @@
+---
+import { steps } from "@/content/landing";
+---
+
+<!-- A real sequence: the numbers carry order information. -->
+<section id="como-funciona" class="bg-graphite py-24 md:py-32" aria-labelledby="proc-title">
+  <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+    <h2 id="proc-title" class="display max-w-[16ch] text-[clamp(3rem,7vw,6rem)] text-bone">Así trabajamos, mes a mes.</h2>
+
+    <ol class="proc mt-16 grid gap-12 md:grid-cols-4 md:gap-0">
+      {
+        steps.map((s, i) => (
+          <li class="relative grid content-start gap-4 pt-8 md:pr-10">
+            <span class="display tnum text-[clamp(4.5rem,8vw,7rem)] leading-none text-lime">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="display text-[2.4rem] text-bone">{s.title}</h3>
+            <p class="max-w-[34ch] leading-relaxed text-mute-2">{s.body}</p>
+          </li>
+        ))
+      }
+    </ol>
+    <p class="mt-12 font-mono text-sm text-mute-2">Del paso 4 volvemos al 3: el ciclo se repite cada 4 semanas.</p>
+  </div>
+</section>
+
+<style>
+  .proc li::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: var(--color-line);
+  }
+  .proc li:first-child::before {
+    background: var(--color-lime);
+    height: 6px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .proc li::before {
+      transform-origin: left;
+    }
+    .proc.in-view li::before {
+      animation: draw 0.9s var(--ease-out-expo) both;
+      background: var(--color-lime);
+      height: 6px;
+    }
+    .proc.in-view li:nth-child(2)::before { animation-delay: 0.15s; }
+    .proc.in-view li:nth-child(3)::before { animation-delay: 0.3s; }
+    .proc.in-view li:nth-child(4)::before { animation-delay: 0.45s; }
+  }
+  @keyframes draw {
+    from { transform: scaleX(0); }
+  }
+</style>
+
+<script>
+  const proc = document.querySelector<HTMLElement>(".proc");
+  if (proc) {
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e?.isIntersecting) {
+          proc.classList.add("in-view");
+          io.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    io.observe(proc);
+  }
+</script>

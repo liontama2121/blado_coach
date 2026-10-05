@@ -1,0 +1,35 @@
+---
+import Icon from "@/components/Icon.astro";
+import { whatsappUrl } from "@/config/site";
+---
+
+<a
+  id="wa-float"
+  href={whatsappUrl()}
+  target="_blank"
+  rel="noopener"
+  data-hidden="true"
+  class="fixed bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 z-40 grid size-14 place-items-center bg-lime text-ink shadow-[0_10px_30px_-8px_rgba(0,0,0,0.6)] transition-[transform,opacity] duration-300 hover:-translate-y-0.5 data-[hidden=true]:pointer-events-none data-[hidden=true]:translate-y-4 data-[hidden=true]:opacity-0 md:bottom-8 md:right-8"
+  aria-label="Escribir por WhatsApp"
+>
+  <Icon name="whatsapp" size={28} />
+</a>
+
+<script>
+  // Hidden while the hero (which has its own WhatsApp button and the lime band)
+  // or the contact form (which offers WhatsApp and would be covered) is on screen.
+  const fab = document.getElementById("wa-float");
+  const watched = ["hero-title", "contacto"].map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+  if (fab) {
+    const visible = new Set<Element>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) e.isIntersecting ? visible.add(e.target) : visible.delete(e.target);
+        fab.dataset.hidden = String(visible.size > 0);
+      },
+      { threshold: 0.1 },
+    );
+    watched.forEach((el) => io.observe(el));
+    if (!watched.length) fab.dataset.hidden = "false";
+  }
+</script>

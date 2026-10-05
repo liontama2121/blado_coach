@@ -1,0 +1,288 @@
+---
+// Alimentación: today's meals (training vs rest day), daily totals vs targets, quick check per meal.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import PlanTabs from "@/components/app/PlanTabs.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { whatsappUrl } from "@/config/site";
+import { bogotaParts } from "@/lib/schedule";
+import { SLOT_LABEL, dayTotals, getMealLogs, getMealPlan, getRestrictions, getTargets, getWorkoutPlan, mealsFor } from "@/lib/server/plans";
+
+const studentId = Astro.locals.user!.studentId!;
+const { date: today, weekday } = bogotaParts(new Date());
+const [plan, targets, restrictions, logs, workout] = await Promise.all([
+  getMealPlan(env.DB, studentId),
+  getTargets(env.DB, studentId),
+  getRestrictions(env.DB, studentId),
+  getMealLogs(env.DB, studentId, today),
+  getWorkoutPlan(env.DB, studentId),
+]);
+const trainsToday = workout?.days.some((d) => d.weekday === weekday) ?? false;
+const qp = Astro.url.searchParams.get("tipo");
+const dayType = qp === "entreno" || qp === "descanso" ? qp : trainsToday ? "entreno" : "descanso";
+const meals = plan ? mealsFor(plan, dayType) : [];
+const totals = dayTotals(meals);
+const r = (n: number) => Math.round(n);
+const fmt1 = (n: number) => new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(n);
+const done = meals.filter((m) => logs.get(m.id) === "cumpli").length;
+const bars = targets
+  ? [
+      { k: "Energía", v: totals.kcal, t: targets.kcal, u: "kcal" },
+      { k: "Proteína", v: totals.protein, t: targets.protein_g, u: "g" },
+      { k: "Carbohidratos", v: totals.carbs, t: targets.carbs_g, u: "g" },
+      { k: "Grasa", v: totals.fat, t: targets.fat_g, u: "g" },
+    ]
+  : [];
+const severe = restrictions.filter((x) => x.type === "alergia" && x.severity === "grave");
+const TAG: Record<string, string> = { sin_lactosa: "Sin lactosa", sin_lacteos: "Sin lácteos", vegano: "Vegano", vegetariano: "Vegetariano", celiaquia: "Celiaquía", sin_cerdo: "Sin cerdo" };
+const chip = (x: (typeof restrictions)[number]) =>
+  x.type === "alergia" ? `Alergia: ${x.allergen_label}` : x.type === "no_le_gusta" ? `No le gusta: ${x.food_name}` : (TAG[x.restriction_tag ?? ""] ?? x.restriction_tag ?? x.type);
+---
+
+<AppShell title="Alimentación" tab="plan">
+  <PlanTabs active="alimentacion" />
+
+  {
+    !plan ? (
+      <section class="card" style="justify-items:center;text-align:center">
+        <Bladimir state="cook" size={140} />
+        <p class="muted">Tu coach está armando tu plan de alimentación.</p>
+      </section>
+    ) : (
+      <>
+        {severe.map((s) => (
+          <p class="allergy" role="note">
+            <strong>Alergia grave: {s.allergen_label}.</strong> Tu plan excluye este alimento y sus trazas.
+          </p>
+        ))}
+
+        <section class="card">
+          <div class="row">
+            <div>
+              <h1 class="app-h1" style="font-size:2.6rem">{plan.kind === "plan" && plan.reviewer ? "Plan de alimentación" : "Guía de alimentación"}</h1>
+              <p class="muted text-sm">Versión {plan.version}</p>
+            </div>
+            <Bladimir state="cook" size={76} />
+          </div>
+          {plan.reviewer ? (
+            <p class="muted text-xs">Revisado por: {plan.reviewer.name}</p>
+          ) : (
+            <p class="muted text-xs">Guía de tu coach. No reemplaza la consulta con un nutricionista-dietista.</p>
+          )}
+          <ul class="chips" aria-label="Tus restricciones">
+            {restrictions.map((x) => <li class:list={["chip", x.severity === "grave" && "chip-grave"]}>{chip(x)}</li>)}
+          </ul>
+        </section>
+
+        <div class="daytype" role="group" aria-label="Tipo de día">
+          <a href="?tipo=entreno" aria-current={dayType === "entreno" ? "true" : undefined}>Día de entreno</a>
+          <a href="?tipo=descanso" aria-current={dayType === "descanso" ? "true" : undefined}>Día de descanso</a>
+        </div>
+
+        {bars.length > 0 && (
+          <section class="card" aria-labelledby="tot-t">
+            <div class="row">
+              <h2 id="tot-t" class="app-h2">Total del día</h2>
+              <span class="tag">{done}/{meals.length} cumplidas hoy</span>
+            </div>
+            <div class="bars">
+              {bars.map((b) => (
+                <div class="bar">
+                  <div class="row text-sm"><span>{b.k}</span><span class="tnum muted">{fmt1(b.v)} / {fmt1(b.t)} {b.u}</span></div>
+                  <div class="bar-track"><i style={`width:${Math.min(100, (b.v / b.t) * 100)}%`} /></div>
+                </div>
+              ))}
+            </div>
+            <p class="muted text-xs">Valores aproximados. Base de alimentos en revisión (TCAC del ICBF).</p>
+          </section>
+        )}
+
+        {meals.map((m) => {
+          const st = logs.get(m.id);
+          return (
+            <section class="card meal" aria-labelledby={`m-${m.id}`}>
+              <div class="row">
+                <h2 id={`m-${m.id}`} class="app-h2">{SLOT_LABEL[m.slot] ?? m.slot}</h2>
+                <span class="muted text-sm tnum">{r(m.macros.kcal)} kcal · {r(m.macros.protein)} g prot.</span>
+              </div>
+              <ul class="items">
+                {m.items.map((i) => (
+                  <li>
+                    <div>
+                      <strong>{i.name}</strong>
+                      <span class="muted text-sm">{i.measure} · {r(i.grams)} g</span>
+                      {i.isRecipe && i.preparation && (
+                        <details>
+                          <summary>Preparación</summary>
+                          <p class="muted text-sm">{i.preparation}</p>
+                        </details>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div class="check" data-meal={m.id} role="group" aria-label={`¿Cumpliste ${SLOT_LABEL[m.slot]}?`}>
+                <button data-st="cumpli" aria-pressed={st === "cumpli" ? "true" : "false"}><Icon name="check" size={16} /> Cumplí</button>
+                <button data-st="parcial" aria-pressed={st === "parcial" ? "true" : "false"}>Parcial</button>
+                <button data-st="no" aria-pressed={st === "no" ? "true" : "false"}>No cumplí</button>
+              </div>
+              <a class="change muted text-sm" target="_blank" rel="noopener" href={whatsappUrl(`Hola coach, quiero cambiar algo de mi ${(SLOT_LABEL[m.slot] ?? "").toLowerCase()}: `)}>Pedir un cambio</a>
+            </section>
+          );
+        })}
+
+        <a href="/app/plan/mercado" class="card card-lime" style="text-decoration:none">
+          <div class="row">
+            <div>
+              <h2 class="app-h2">Lista de mercado</h2>
+              <p class="muted">Todo lo de la semana, por sección.</p>
+            </div>
+            <Icon name="arrowRight" size={28} />
+          </div>
+        </a>
+      </>
+    )
+  }
+</AppShell>
+
+<style>
+  .allergy {
+    margin: 0;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: rgba(255, 90, 54, 0.12);
+    border: 1px solid #ff5a36;
+    color: #ffd2c6;
+    font-size: 14px;
+  }
+  .chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--card2);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .chip-grave {
+    background: #ff5a36;
+    color: #0d0d0d;
+  }
+  .daytype {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .daytype a {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--mute);
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+  }
+  .daytype a[aria-current] {
+    border-color: var(--lime);
+    color: var(--lime);
+  }
+  .bars {
+    display: grid;
+    gap: 12px;
+  }
+  .bar {
+    display: grid;
+    gap: 6px;
+  }
+  .bar-track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--card2);
+    overflow: hidden;
+  }
+  .bar-track i {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--lime);
+  }
+  .items {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .items li div {
+    display: grid;
+    gap: 2px;
+  }
+  .items summary {
+    cursor: pointer;
+    color: var(--lime);
+    font-size: 13px;
+  }
+  .check {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .check button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--fg);
+    font: 600 13px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .check button[aria-pressed="true"][data-st="cumpli"] {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: #0d0d0d;
+  }
+  .check button[aria-pressed="true"][data-st="parcial"] {
+    background: #ffd166;
+    border-color: #ffd166;
+    color: #0d0d0d;
+  }
+  .check button[aria-pressed="true"][data-st="no"] {
+    border-color: var(--mute);
+    background: var(--card2);
+  }
+  .change {
+    justify-self: start;
+    text-decoration: underline;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>("[data-meal]").forEach((group) =>
+    group.querySelectorAll<HTMLButtonElement>("button").forEach((b) =>
+      b.addEventListener("click", async () => {
+        const prev = [...group.querySelectorAll("button")].map((x) => x.getAttribute("aria-pressed"));
+        group.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+        const res = await fetch("/api/app/logs", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ kind: "meal", id: group.dataset.meal, status: b.dataset.st }),
+        }).catch(() => null);
+        if (!res?.ok) group.querySelectorAll("button").forEach((x, i) => x.setAttribute("aria-pressed", prev[i] ?? "false"));
+      }),
+    ),
+  );
+</script>

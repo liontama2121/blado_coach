@@ -1,0 +1,116 @@
+---
+// "Progreso": trend weight (EMA) + real weights, key deltas since the start. Bitácora grows in later phases.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import AppShell from "@/layouts/AppShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import { formatDate } from "@/config/site";
+import { delta, ema, round, trend, waistHeightRatio } from "@/lib/metrics";
+import { getMeasurements, getStudent } from "@/lib/server/student";
+
+const studentId = Astro.locals.user!.studentId!;
+const [student, ms] = await Promise.all([getStudent(env.DB, studentId), getMeasurements(env.DB, studentId)]);
+const fmt = (n: number, d = 1) => new Intl.NumberFormat("es-CO", { minimumFractionDigits: d, maximumFractionDigits: d }).format(n);
+
+const weights = ms.map((m) => m.weight_kg);
+const trendLine = ema(weights, 0.4);
+const first = ms[0];
+const last = ms.at(-1);
+const dWaist = delta(last?.waist_cm, first?.waist_cm);
+const dTrend = delta(trendLine.at(-1), trendLine[0]);
+const ica = last && student ? waistHeightRatio(last.waist_cm, student.height_cm) : null;
+
+// Chart to scale
+const W = 600, H = 220, P = { l: 8, r: 12, t: 20, b: 20 };
+const lo = Math.floor(Math.min(...weights, ...trendLine) - 1);
+const hi = Math.ceil(Math.max(...weights, ...trendLine) + 1);
+const x = (i: number) => P.l + (ms.length < 2 ? 0 : (i * (W - P.l - P.r)) / (ms.length - 1));
+const y = (v: number) => P.t + ((hi - v) * (H - P.t - P.b)) / (hi - lo || 1);
+const trendPts = trendLine.map((v, i) => `${x(i)},${y(v)}`).join(" ");
+const good = (dWaist?.abs ?? 0) < 0;
+---
+
+<AppShell title="Progreso" tab="progreso">
+  <h1 class="app-h1">Tu progreso</h1>
+
+  {
+    ms.length === 0 ? (
+      <section class="card" style="justify-items:center;text-align:center">
+        <Bladimir state="think" size={140} />
+        <p class="muted">Aún no tienes mediciones. Después de tu valoración aquí verás tu evolución.</p>
+      </section>
+    ) : (
+      <>
+        <section class="card" aria-labelledby="w-t">
+          <div class="row">
+            <h2 id="w-t" class="app-h2">Tu tendencia</h2>
+            <span class="tag">{ms.length} mediciones</span>
+          </div>
+          <svg viewBox={`0 0 ${W} ${H}`} class="w-full" role="img" aria-label={`Tendencia de peso de ${fmt(trendLine[0]!)} a ${fmt(trendLine.at(-1)!)} kilogramos`}>
+            {[0.25, 0.5, 0.75].map((f) => <line x1={P.l} x2={W - P.r} y1={P.t + f * (H - P.t - P.b)} y2={P.t + f * (H - P.t - P.b)} stroke="#2a2d2a" />)}
+            {weights.map((v, i) => <circle cx={x(i)} cy={y(v)} r="4" fill="#6b6e67" />)}
+            <polyline points={trendPts} fill="none" stroke="#c6ff00" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
+            <circle cx={x(ms.length - 1)} cy={y(trendLine.at(-1)!)} r="6" fill="#c6ff00" />
+          </svg>
+          <div class="row text-sm">
+            <span class="muted"><span style="color:#c6ff00">━</span> tu tendencia · <span style="color:#8b8e87">●</span> tu peso del día</span>
+          </div>
+          <p class="muted text-sm">La tendencia filtra los cambios de agua del día a día. Es la que importa.</p>
+        </section>
+
+        <div class="prog-grid">
+          <section class="card">
+            <h2 class="app-h2">Tendencia</h2>
+            <p class="big-num">{dTrend ? `${dTrend.abs > 0 ? "+" : ""}${fmt(dTrend.abs)}` : "-"}<span class="muted" style="font-size:1rem"> kg</span></p>
+            <p class="muted text-sm">desde el inicio</p>
+          </section>
+          <section class="card">
+            <h2 class="app-h2">Cintura</h2>
+            <p class="big-num" style={good ? "color:#c6ff00" : ""}>{dWaist ? `${dWaist.abs > 0 ? "+" : ""}${fmt(dWaist.abs)}` : "-"}<span class="muted" style="font-size:1rem"> cm</span></p>
+            <p class="muted text-sm">{trend(dWaist, 0.5).replace("_", " ")}</p>
+          </section>
+          <section class="card">
+            <h2 class="app-h2">Cintura / altura</h2>
+            <p class="big-num">{ica ? fmt(round(ica, 2), 2) : "-"}</p>
+            <p class="muted text-sm">Referencia general &lt; 0,5. Orientativo, no es un diagnóstico.</p>
+          </section>
+          <section class="card" style="place-items:center">
+            <Bladimir state={good ? "flex" : "cheer"} size={110} />
+          </section>
+        </div>
+
+        <section class="card" aria-labelledby="h-t">
+          <h2 id="h-t" class="app-h2">Historial</h2>
+          <ul class="hist">
+            {[...ms].reverse().map((m) => (
+              <li class="row">
+                <span>{formatDate(m.measured_on)}</span>
+                <span class="muted">{fmt(m.weight_kg)} kg{m.waist_cm ? ` · cintura ${fmt(m.waist_cm)} cm` : ""}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </>
+    )
+  }
+</AppShell>
+
+<style>
+  .prog-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .hist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    font-variant-numeric: tabular-nums;
+  }
+  .hist li + li {
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+  }
+</style>

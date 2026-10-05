@@ -1,0 +1,107 @@
+---
+/**
+ * Kinesiology tape strip. The core material of the Cinta Kinesio direction:
+ * it only ever holds something that matters (a CTA, a key word, a free slot).
+ * At rest the strip is applied (works without JS). Strips below the fold are
+ * armed by script and "stuck on" from their anchored end when they enter view.
+ */
+interface Props {
+  as?: "span" | "a" | "div";
+  href?: string;
+  rotate?: number; // degrees
+  from?: "left" | "right";
+  class?: string;
+  [key: string]: unknown;
+}
+const { as = "span", href, rotate = 0, from = "left", class: className = "", ...rest } = Astro.props;
+const Tag = href ? "a" : as;
+---
+
+<Tag
+  href={href}
+  class:list={["tape", `tape-from-${from}`, className]}
+  style={`--rot:${rotate}deg`}
+  {...rest}
+>
+  <slot />
+</Tag>
+
+<style is:global>
+  .tape {
+    --tape: var(--color-lime);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--color-ink);
+    background:
+      repeating-linear-gradient(135deg, rgba(13, 14, 13, 0.06) 0 2px, transparent 2px 6px),
+      repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.18) 0 1px, transparent 1px 7px),
+      var(--tape);
+    border-radius: 0.9em / 0.5em;
+    transform: rotate(var(--rot, 0deg));
+    box-shadow: 0 8px 18px -10px rgba(0, 0, 0, 0.7);
+    text-decoration: none;
+  }
+  a.tape {
+    transition:
+      transform 0.35s var(--ease-out-expo),
+      background-color 0.35s var(--ease-out-expo);
+  }
+  a.tape:hover {
+    transform: rotate(var(--rot, 0deg)) translateY(-2px) scale(1.015);
+  }
+  a.tape:active {
+    transform: rotate(var(--rot, 0deg)) scale(0.98);
+  }
+  a.tape:focus-visible {
+    outline: 2px solid var(--color-bone);
+    outline-offset: 4px;
+  }
+  .tape-from-left {
+    transform-origin: left center;
+  }
+  .tape-from-right {
+    transform-origin: right center;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tape.tape-armed {
+      transform: rotate(var(--rot, 0deg)) scaleX(0.02);
+      opacity: 0;
+    }
+    .tape.tape-armed.tape-on {
+      transform: rotate(var(--rot, 0deg)) scaleX(1);
+      opacity: 1;
+      transition:
+        transform 0.75s var(--ease-out-expo),
+        opacity 0.2s linear;
+      transition-delay: var(--delay, 0ms);
+    }
+  }
+</style>
+
+<script>
+  // Arm strips that are still below the fold, then stick them on as they arrive.
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add("tape-on");
+          io.unobserve(e.target);
+        }
+      },
+      { threshold: 0.5 },
+    );
+    const arm = (root: ParentNode = document) =>
+      root.querySelectorAll<HTMLElement>(".tape:not(.tape-armed)").forEach((el) => {
+        if (el.getBoundingClientRect().top > innerHeight) {
+          el.classList.add("tape-armed");
+          io.observe(el);
+        }
+      });
+    arm();
+    // Live content (agenda) dispatches this after rendering new strips.
+    document.addEventListener("tape:arm", (ev) => arm((ev as CustomEvent<ParentNode>).detail ?? document));
+  }
+</script>

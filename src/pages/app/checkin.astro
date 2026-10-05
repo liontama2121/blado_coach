@@ -1,0 +1,136 @@
+---
+// Weekly check-in: < 1 minute, mobile-first. Sliders 1-10 + quick counters.
+export const prerender = false;
+import AppShell from "@/layouts/AppShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+
+const scales = [
+  { name: "energy", label: "Energía", low: "Sin pila", high: "A tope" },
+  { name: "sleep_quality", label: "Calidad del sueño", low: "Mal", high: "Excelente" },
+  { name: "nutrition_adherence", label: "Cumplí la alimentación", low: "Poco", high: "Todo" },
+  { name: "stress", label: "Estrés", low: "Tranquilo/a", high: "Mucho" },
+  { name: "hunger", label: "Hambre", low: "Poca", high: "Mucha" },
+];
+---
+
+<AppShell title="Check-in" tab="hoy">
+  <section class="card" style="grid-template-columns:auto 1fr;align-items:center">
+    <Bladimir state="point" size={84} class="ci-face" />
+    <div>
+      <h1 class="app-h1" style="font-size:2.8rem">Check-in semanal</h1>
+      <p class="muted" data-ci-say>Menos de un minuto. Cuéntame cómo te fue.</p>
+    </div>
+  </section>
+
+  <form id="ci" class="card" novalidate>
+    <div class="ci-two">
+      <label class="ci-num">
+        <span>Entrenos hechos</span>
+        <input name="sessions_done" type="number" inputmode="numeric" min="0" max="14" value="3" required />
+      </label>
+      <label class="ci-num">
+        <span>Planeados</span>
+        <input name="sessions_planned" type="number" inputmode="numeric" min="0" max="14" value="3" required />
+      </label>
+    </div>
+
+    {
+      scales.map((s) => (
+        <div class="ci-scale">
+          <label for={`ci-${s.name}`} class="row">
+            <span>{s.label}</span>
+            <output for={`ci-${s.name}`} data-out={s.name}>7</output>
+          </label>
+          <input id={`ci-${s.name}`} name={s.name} type="range" min="1" max="10" value="7" />
+          <div class="row muted text-xs"><span>{s.low}</span><span>{s.high}</span></div>
+        </div>
+      ))
+    }
+
+    <label class="ci-num">
+      <span>Peso de la semana (opcional)</span>
+      <input name="weight_kg" type="number" inputmode="decimal" step="0.1" min="30" max="300" placeholder="Ej: 69,5" />
+    </label>
+    <label class="ci-num">
+      <span>Molestias o dolor (opcional)</span>
+      <input name="soreness" type="text" maxlength="300" placeholder="Ej: rodilla derecha" />
+    </label>
+    <label class="ci-num">
+      <span>Comentario para el coach (opcional)</span>
+      <textarea name="comment" rows="3" maxlength="500"></textarea>
+    </label>
+    <p class="text-sm" style="color:var(--err)" data-ci-err role="alert"></p>
+    <button class="pill-btn" type="submit">Enviar check-in</button>
+  </form>
+</AppShell>
+
+<style>
+  .ci-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .ci-num {
+    display: grid;
+    gap: 8px;
+    font-weight: 500;
+  }
+  .ci-num input,
+  .ci-num textarea {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card2);
+    color: var(--fg);
+    font: 500 16px/1.3 var(--font-sans);
+  }
+  .ci-num input:focus,
+  .ci-num textarea:focus {
+    outline: none;
+    border-color: var(--lime);
+  }
+  .ci-scale {
+    display: grid;
+    gap: 6px;
+    padding-top: 6px;
+  }
+  .ci-scale output {
+    font: 400 1.8rem/1 var(--disp);
+    color: var(--lime);
+    font-variant-numeric: tabular-nums;
+  }
+  .ci-scale input[type="range"] {
+    width: 100%;
+    accent-color: var(--lime);
+    height: 32px;
+  }
+</style>
+
+<script>
+  const form = document.getElementById("ci") as HTMLFormElement;
+  const face = document.querySelector<HTMLElement>(".ci-face");
+  const say = document.querySelector<HTMLElement>("[data-ci-say]");
+  const err = form.querySelector<HTMLElement>("[data-ci-err]")!;
+  form.querySelectorAll<HTMLInputElement>('input[type="range"]').forEach((r) => {
+    const out = form.querySelector<HTMLOutputElement>(`[data-out="${r.name}"]`);
+    r.addEventListener("input", () => out && (out.value = r.value));
+  });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    err.textContent = "";
+    face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "think" }));
+    const body = Object.fromEntries(new FormData(form));
+    const res = await fetch("/api/app/checkin", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    const data = res ? ((await res.json()) as { ok: boolean; errors?: Record<string, string> }) : { ok: false, errors: { form: "Sin conexión." } };
+    if (data.ok) {
+      face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "cheer" }));
+      if (say) say.textContent = "¡Check-in enviado! Gracias por contarme.";
+      setTimeout(() => location.assign("/app"), 1400);
+      return;
+    }
+    face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "sad-soft" }));
+    err.textContent = Object.values(data.errors ?? {})[0] ?? "Revisa los datos.";
+  });
+</script>

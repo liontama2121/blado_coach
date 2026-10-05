@@ -1,0 +1,177 @@
+---
+/**
+ * Bladimir as a page guide. Sticky in a corner; when a section marked with
+ *   data-guide="<state>" data-guide-text="..." [data-guide-cta="whatsapp"|"#anchor"] [data-guide-cta-label="..."]
+ * enters the screen, he switches state and says the section's line.
+ * Visitors can hide him (remembered on this device) and bring him back.
+ */
+import Bladimir from "./Bladimir.astro";
+import { whatsappUrl } from "@/config/site";
+---
+
+<div class="bl-guide" data-guide-root data-wa={whatsappUrl()}>
+  <div class="bl-bubble" data-guide-bubble>
+    <p data-guide-text aria-live="polite">¡Hola! Soy Bladimir, tu coach.</p>
+    <a data-guide-cta class="bl-bubble-cta" href="#" hidden></a>
+    <button type="button" class="bl-close" data-guide-close aria-label="Ocultar a Bladimir">×</button>
+  </div>
+  <button type="button" class="bl-avatar" data-guide-toggle aria-label="Mostrar u ocultar el mensaje de Bladimir">
+    <Bladimir state="wave" size="100%" label="Bladimir, tu coach" />
+  </button>
+</div>
+
+<style is:global>
+  .bl-guide {
+    position: fixed;
+    left: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .bl-guide > * {
+    pointer-events: auto;
+  }
+  .bl-avatar {
+    order: -1;
+    width: 84px;
+    height: 84px;
+    padding: 6px;
+    border: 1px solid #2a2d2a;
+    border-radius: 50%;
+    background: #0d0d0d;
+    color: #c6ff00;
+    cursor: pointer;
+    box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.7);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bl-avatar:hover {
+    transform: translateY(-2px);
+  }
+  .bl-avatar:focus-visible,
+  .bl-close:focus-visible,
+  .bl-bubble-cta:focus-visible {
+    outline: 2px solid #c6ff00;
+    outline-offset: 3px;
+  }
+  .bl-avatar .bladimir {
+    width: 100%;
+    height: 100%;
+  }
+  .bl-bubble {
+    position: relative;
+    max-width: min(300px, calc(100vw - 132px));
+    padding: 14px 36px 14px 16px;
+    margin-bottom: 18px;
+    border-radius: 18px 18px 18px 4px;
+    background: #0d0d0d;
+    border: 1px solid #c6ff00;
+    color: #f1f1ec;
+    font: 500 14px/1.45 var(--font-sans);
+    box-shadow: 0 14px 30px -14px rgba(0, 0, 0, 0.7);
+    transform-origin: 0% 100%;
+    transition:
+      opacity 0.25s,
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .bl-bubble p {
+    margin: 0;
+  }
+  .bl-bubble-cta {
+    display: inline-flex;
+    margin-top: 10px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: #c6ff00;
+    color: #0d0d0d;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .bl-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: #a3a59e;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .bl-guide[data-collapsed="true"] .bl-bubble {
+    opacity: 0;
+    transform: scale(0.85) translateY(8px);
+    pointer-events: none;
+  }
+  @media (max-width: 760px) {
+    .bl-avatar {
+      width: 64px;
+      height: 64px;
+    }
+    .bl-bubble {
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+  }
+</style>
+
+<script>
+  import type { MascotState } from "./states";
+
+  const root = document.querySelector<HTMLElement>("[data-guide-root]");
+  if (root) {
+    const face = root.querySelector<HTMLElement>("[data-bladimir]")!;
+    const text = root.querySelector<HTMLElement>("[data-guide-text]")!;
+    const cta = root.querySelector<HTMLAnchorElement>("[data-guide-cta]")!;
+    const KEY = "blado-guide-collapsed";
+    const setCollapsed = (v: boolean) => {
+      root.dataset.collapsed = String(v);
+      try {
+        localStorage.setItem(KEY, String(v));
+      } catch {}
+    };
+    try {
+      root.dataset.collapsed = localStorage.getItem(KEY) === "true" ? "true" : "false";
+    } catch {
+      root.dataset.collapsed = "false";
+    }
+    root.querySelector("[data-guide-close]")!.addEventListener("click", () => setCollapsed(true));
+    root.querySelector("[data-guide-toggle]")!.addEventListener("click", () => setCollapsed(root.dataset.collapsed !== "true"));
+
+    const say = (section: HTMLElement) => {
+      const state = (section.dataset.guide ?? "idle") as MascotState;
+      face.dispatchEvent(new CustomEvent("bladimir:state", { detail: state }));
+      text.textContent = section.dataset.guideText ?? "";
+      const target = section.dataset.guideCta;
+      if (target) {
+        cta.hidden = false;
+        cta.href = target === "whatsapp" ? root.dataset.wa! : target;
+        cta.textContent = section.dataset.guideCtaLabel ?? "Escríbeme";
+        cta.target = target === "whatsapp" ? "_blank" : "";
+        cta.rel = target === "whatsapp" ? "noopener" : "";
+      } else cta.hidden = true;
+    };
+
+    // The section closest to the middle of the screen drives the guide.
+    const sections = [...document.querySelectorAll<HTMLElement>("[data-guide]")];
+    let active: HTMLElement | null = null;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && e.target !== active) {
+            active = e.target as HTMLElement;
+            say(active);
+          }
+        }
+      },
+      { rootMargin: "-45% 0px -45% 0px" },
+    );
+    sections.forEach((s) => io.observe(s));
+    if (sections[0]) say(sections[0]);
+  }
+</script>

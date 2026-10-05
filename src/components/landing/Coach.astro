@@ -1,0 +1,37 @@
+---
+import { site } from "@/config/site";
+const { coach } = site;
+---
+
+<section id="coach" class="bg-ink py-24 md:py-32" aria-labelledby="coach-title">
+  <div class="mx-auto grid max-w-[1400px] gap-12 px-4 md:grid-cols-12 md:gap-8 md:px-8">
+    <div class="md:col-span-5">
+      <div class="relative mx-auto aspect-[4/5] max-h-[70vh] max-w-full overflow-hidden border border-line bg-graphite">
+        {
+          coach.photo ? (
+            <img src={coach.photo} alt={coach.name} class="h-full w-full object-cover" loading="lazy" width="800" height="1000" />
+          ) : (
+            <>
+              <span class="display absolute -bottom-[0.12em] -right-[0.04em] text-[clamp(10rem,22vw,20rem)] leading-[0.8] text-graphite-2" aria-hidden="true">B</span>
+              <span class="absolute bottom-4 left-4 font-mono text-xs text-mute-2">Foto del coach, 4:5</span>
+            </>
+          )
+        }
+      </div>
+    </div>
+
+    <div class="grid content-center gap-8 md:col-span-6 md:col-start-7">
+      <h2 id="coach-title" class="display text-[clamp(3rem,6vw,5.5rem)] text-bone">
+        {coach.name}
+      </h2>
+      <p class="max-w-[58ch] text-lg leading-relaxed text-mute-2">{coach.bio}</p>
+      <ul class="flex flex-wrap gap-2" aria-label="Certificaciones">
+        {
+          coach.certifications.map((c) => (
+            <li class="border border-line px-3 py-2 text-sm text-bone">{c}</li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,130 @@
+{
+  "title": "Blado: nueva tirada, más creativa y más gym",
+  "question": "La tirada asignó Cinta Kinesio. Un rival le gana en los dos ejes: Cartel de Pelea. Elige, toma una alternativa o vuelve a tirar. Todas incluyen la agenda del coach en vivo (solo libre u ocupado).",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Cinta Kinesio",
+      "kicker": "THE ROLL",
+      "lineage": "Vendaje neuromuscular: tiras elásticas lima pegadas en diagonal sobre el cuerpo del atleta",
+      "thesis": "La página entera está vendada: tiras lima en diagonal sostienen titulares, CTA y datos como sostienen un músculo.",
+      "palette": ["#0D0E0D", "#C8FF1A", "#EDEFEA", "#FF4D2E"],
+      "materials": ["cinta elástica con textura de tejido", "bordes redondeados de tira recortada", "negro mate"],
+      "viewport": "BLADO condensada gigante cruzada por dos tiras lima en X; la CTA está escrita sobre una tira; la agenda de la semana son tiras horizontales pegadas en cada día libre.",
+      "risk": "Si las tiras se reparten por todas partes se vuelve decoración; deben sostener solo lo importante.",
+      "raised": [
+        {"from": "challenger-algorave", "raise": "La próxima franja libre parpadea en lima un instante antes de empezar, como el patrón que va a cambiar."},
+        {"from": "challenger-terminal", "raise": "El estado del coach (Disponible, En sesión, Fuera de horario) se escribe letra por letra en vivo."},
+        {"from": "challenger-ikebana", "raise": "Un solo vacío cargado por sección: la tira cruza espacio negro intencional, nunca relleno."},
+        {"from": "challenger-akari", "raise": "Una sola marca activa a la vez: el día de hoy, sellado en rojo."}
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Tiza y Caucho",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Piso de caucho del gimnasio con huellas de tiza y magnesio",
+      "thesis": "Todo lo que pasa en Blado deja marca de tiza: titulares que parecen escritos con las manos con magnesio sobre caucho negro.",
+      "palette": ["#141514", "#F2F2EE", "#C8FF1A", "#3A3D3A"],
+      "materials": ["textura de caucho granulado", "polvo de tiza", "huellas de manos"],
+      "viewport": "Fondo de caucho, palmada de tiza detrás del titular, agenda trazada en tiza con los horarios libres resaltados en lima.",
+      "risk": "Es la imagen gym más conocida; lo efectivo puede volverse previsible."
+    },
+    {
+      "id": "challenger-fight",
+      "label": "Cartel de Pelea",
+      "verdict": "wins",
+      "lineage": "Póster de boxeo: dos nombres en mayúsculas condensadas chocando en el VS y la cartelera debajo",
+      "thesis": "Tu progreso es una pelea: TÚ (junio) VS TÚ (septiembre). El antes y el después se enfrentan en el VS, y la cartelera debajo es la agenda del coach.",
+      "palette": ["#0D0E0D", "#EDEFEA", "#C8FF1A", "#2A2D2A"],
+      "materials": ["tinta negra de cartel", "VS en lima como único acento", "letras de imprenta pequeñas"],
+      "viewport": "Dos mitades enfrentadas: TÚ ANTES y TÚ DESPUÉS en condensadas que llenan cada mitad, con un VS lima al centro; debajo, la cartelera con los próximos horarios (fecha, hora, casa o gym, libre).",
+      "case": "Fusiona perfecto: el VS es el comparador de progreso y la cartelera es la agenda. Gana en identificación del público y en claridad del producto.",
+      "risk": "El tono de pelea puede leerse agresivo; el copy debe motivar, nunca atacar.",
+      "hero": "https://impeccable.style/worlds/cards/posters-covers-sleeves-fight-poster-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/posters-covers-sleeves-fight-poster.webp"
+    },
+    {
+      "id": "challenger-bench",
+      "label": "Riel de Montaje",
+      "verdict": "competitive",
+      "lineage": "Mesa de corte de cine: riel perforado de fotogramas y banderas de cinta donde paraste",
+      "thesis": "Tu proceso son 12 semanas en un riel perforado; una bandera marca dónde vas y cada fotograma es una sesión.",
+      "palette": ["#0A0A0A", "#C8FF1A", "#F4F4F0", "#3A3A3A"],
+      "materials": ["riel perforado", "bandera de cinta", "grano de película"],
+      "viewport": "Riel horizontal de 12 fotogramas cruzando la pantalla con BLADO en condensada; la agenda son fotogramas libres en lima sobre el riel de la semana.",
+      "case": "Claro para mostrar el proceso semana a semana; el público no reconoce la mesa de montaje.",
+      "risk": "Puede sentirse de cine más que de gimnasio.",
+      "hero": "https://impeccable.style/worlds/cards/operate-a-cutting-bench-select-rail-hero.webp",
+      "board": "https://impeccable.style/worlds/cards/operate-a-cutting-bench-select-rail.webp"
+    },
+    {
+      "id": "challenger-algorave",
+      "label": "Algorave",
+      "verdict": "declined",
+      "lineage": "Código en vivo proyectado sobre la pista",
+      "thesis": "El código cambia y el público reacciona.",
+      "palette": ["#000000", "#39FF14", "#FF2BD6", "#FFB000"],
+      "materials": ["proyector", "terminal"],
+      "viewport": "Buffer de código a pantalla completa.",
+      "case": "Público de gym no se identifica con código.",
+      "risk": "Ilegible como servicio.",
+      "kept": "La próxima franja libre parpadea antes de empezar.",
+      "hero": "https://impeccable.style/worlds/cards/medium-native-algorave-source-floor-hero.webp"
+    },
+    {
+      "id": "challenger-terminal",
+      "label": "Terminal de Nave",
+      "verdict": "declined",
+      "lineage": "Terminal industrial de ciencia ficción",
+      "thesis": "Lecturas verdes y ámbar que se escriben solas.",
+      "palette": ["#050605", "#33FF66", "#FFB000", "#D9D6CC"],
+      "materials": ["CRT", "estarcido"],
+      "viewport": "Consola curva con lecturas.",
+      "case": "Nostalgia sci-fi ajena al entrenamiento.",
+      "risk": "Disfraz.",
+      "kept": "Estado del coach escrito letra por letra en vivo.",
+      "hero": "https://impeccable.style/worlds/cards/pop-culture-shelf-industrial-starship-terminal-hero.webp"
+    },
+    {
+      "id": "challenger-ikebana",
+      "label": "Ikebana",
+      "verdict": "declined",
+      "lineage": "Arreglo floral japonés y el vacío ma",
+      "thesis": "El vacío activo alrededor de una rama.",
+      "palette": ["#E9E4DA", "#6B5E50", "#3F5FBF"],
+      "materials": ["yeso", "bronce"],
+      "viewport": "Alcoba casi vacía.",
+      "case": "Calma contemplativa, opuesta a ganas de entrenar.",
+      "risk": "Demasiado quieto.",
+      "kept": "Un solo vacío cargado por sección.",
+      "hero": "https://impeccable.style/worlds/cards/growth-metamorphosis-branching-ikebana-ma-arrangement-hero.webp"
+    },
+    {
+      "id": "challenger-akari",
+      "label": "Lámpara Akari",
+      "verdict": "declined",
+      "lineage": "Lámparas de papel washi",
+      "thesis": "Volúmenes de luz cálida plegados.",
+      "palette": ["#F3EBDC", "#C9A97A", "#2B2B2B", "#D2452B"],
+      "materials": ["washi", "bambú"],
+      "viewport": "Columnas de papel iluminadas.",
+      "case": "Cálido y suave, sin energía gym.",
+      "risk": "Se siente decoración de interiores.",
+      "kept": "Una sola marca activa a la vez (hoy sellado).",
+      "hero": "https://impeccable.style/worlds/cards/paper-folds-pleats-deployable-akari-light-sculpture-hero.webp"
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": false},
+  "canon": true,
+  "canonCard": {
+    "label": "Estándar de gimnasio",
+    "thesis": "Foto grande del coach, negro, condensadas y CTA lima, con un calendario de reservas común.",
+    "palette": ["#0F0F0F", "#FFFFFF", "#C8FF1A"],
+    "materials": ["foto a sangre", "grilla limpia", "calendario estándar"],
+    "viewport": "Foto del coach a la derecha, titular a la izquierda y un calendario semanal clásico debajo.",
+    "risk": "Idéntica a la competencia por diseño."
+  },
+  "steer": true
+}

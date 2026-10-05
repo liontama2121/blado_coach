@@ -1,0 +1,34 @@
+---
+import Icon from "@/components/Icon.astro";
+import { site, whatsappUrl } from "@/config/site";
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-line bg-ink">
+  <div class="mx-auto grid max-w-[1400px] gap-10 px-4 py-14 md:grid-cols-12 md:px-8">
+    <div class="grid content-start gap-3 md:col-span-6">
+      <a href="/" class="display text-[clamp(5rem,14vw,11rem)] leading-[0.8] text-bone" aria-label="Blado, inicio">
+        Blado<span class="text-lime">.</span>
+      </a>
+      <p class="text-mute-2">Entrenamiento personal en {site.city}. En casa, en gimnasio y online.</p>
+    </div>
+    <nav class="grid content-start gap-3 text-sm md:col-span-3" aria-label="Pie de página">
+      <a href="#modalidades" class="text-mute-2 hover:text-bone">Modalidades</a>
+      <a href="#planes" class="text-mute-2 hover:text-bone">Planes</a>
+      <a href="#preguntas" class="text-mute-2 hover:text-bone">Preguntas</a>
+      <a href="/privacidad" class="text-mute-2 hover:text-bone">Tratamiento de datos</a>
+      <a href="/login" class="text-mute-2 hover:text-bone">Ingresar</a>
+    </nav>
+    <div class="grid content-start gap-3 text-sm md:col-span-3">
+      <a href={whatsappUrl()} target="_blank" rel="noopener" class="flex items-center gap-2 text-mute-2 hover:text-lime"><Icon name="whatsapp" size={18} /> WhatsApp</a>
+      <a href={site.social.instagram} target="_blank" rel="noopener" class="flex items-center gap-2 text-mute-2 hover:text-lime"><Icon name="instagram" size={18} /> Instagram</a>
+      <a href={site.social.tiktok} target="_blank" rel="noopener" class="flex items-center gap-2 text-mute-2 hover:text-lime"><Icon name="tiktok" size={18} /> TikTok</a>
+    </div>
+  </div>
+  <div class="border-t border-line">
+    <div class="mx-auto flex max-w-[1400px] flex-wrap justify-between gap-3 px-4 py-6 text-xs text-mute-2 md:px-8">
+      <span>© {year} {site.brand}</span>
+      <span>{site.footer}</span>
+    </div>
+  </div>
+</footer>

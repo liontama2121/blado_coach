@@ -1,0 +1,234 @@
+---
+/**
+ * Live coach agenda (next 7 days, Bogotá time). Public data: free / busy only.
+ * Styling comes from CSS custom properties set by the parent (--la-*), so each
+ * design direction can theme it. `variant` picks the layout:
+ *  - "columns": 7 day columns (stacked on mobile)
+ *  - "rail": horizontal scroll-snap of day cards
+ * Also dispatches `agenda:data` so status widgets (LiveStatus) can listen.
+ */
+interface Props {
+  variant?: "columns" | "rail";
+}
+const { variant = "columns" } = Astro.props;
+---
+
+<div class="la" data-live-agenda data-variant={variant} aria-live="polite" aria-busy="true">
+  <div class="la-grid">
+    {Array.from({ length: 7 }, () => <div class="la-day la-skel" />)}
+  </div>
+</div>
+
+<style is:global>
+  .la {
+    min-width: 0;
+    --la-bg: #141614;
+    --la-fg: #f2f3ef;
+    --la-mute: #9ca29c;
+    --la-line: #262a26;
+    --la-free-bg: #c8ff1a;
+    --la-free-fg: #0a0b0a;
+    --la-now: #ff5a36;
+    --la-radius: 16px;
+    --la-slot-radius: 999px;
+    --la-display: var(--font-display);
+  }
+  .la-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .la[data-variant="rail"] .la-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+  .la[data-variant="rail"] .la-day {
+    scroll-snap-align: start;
+  }
+  /* On phones every layout becomes a swipeable rail: one day per screen-ish, no 7-row scroll. */
+  @media (max-width: 900px) {
+    .la .la-grid,
+    .la[data-variant="columns"] .la-grid {
+      grid-template-columns: none;
+      grid-auto-flow: column;
+      grid-auto-columns: min(78vw, 300px);
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      padding-bottom: 8px;
+      margin-inline: calc(var(--la-bleed, 0px) * -1);
+      padding-inline: var(--la-bleed, 0px);
+      scroll-padding-inline: var(--la-bleed, 0px);
+    }
+    .la .la-day {
+      scroll-snap-align: start;
+      min-height: 0;
+    }
+  }
+  .la-day {
+    background: var(--la-bg);
+    color: var(--la-fg);
+    border-radius: var(--la-radius);
+    padding: 16px 14px;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .la-skel {
+    opacity: 0.5;
+  }
+  .la-day.is-today {
+    box-shadow: inset 0 0 0 1.5px var(--la-fg);
+  }
+  .la-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .la-head b {
+    font-family: var(--la-display);
+    font-size: 1.9rem;
+    line-height: 1;
+    text-transform: uppercase;
+    font-weight: inherit;
+  }
+  .la-head small {
+    font-size: 12px;
+    color: var(--la-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .la-slot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: var(--la-slot-radius);
+    font: 600 14px/1 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+  }
+  .la-slot small {
+    font-size: 11px;
+    font-weight: 500;
+    opacity: 0.75;
+  }
+  .la-free {
+    background: var(--la-free-bg);
+    color: var(--la-free-fg);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .la-free:hover {
+    transform: translateY(-1px);
+  }
+  .la-free:active {
+    transform: scale(0.98);
+  }
+  .la-free:focus-visible {
+    outline: 2px solid var(--la-fg);
+    outline-offset: 2px;
+  }
+  .la-busy {
+    color: var(--la-mute);
+    box-shadow: inset 0 0 0 1px var(--la-line);
+  }
+  .la-past {
+    color: var(--la-mute);
+    opacity: 0.45;
+    text-decoration: line-through;
+  }
+  .la-now {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    font: 600 11px/1 var(--font-mono);
+    color: var(--la-now);
+  }
+  .la-now::after {
+    content: "";
+    flex: 1;
+    height: 1.5px;
+    background: var(--la-now);
+  }
+  .la-empty {
+    font-size: 13px;
+    color: var(--la-mute);
+  }
+  .la-error {
+    color: var(--la-mute);
+  }
+</style>
+
+<script>
+  import { bogotaParts, formatMinute } from "@/lib/schedule";
+  import { site } from "@/config/site";
+
+  type Slot = { start: number; end: number; state: "free" | "busy" | "past"; location: "gym" | "casa" | "ambos" };
+  type Day = { date: string; weekday: number; slots: Slot[] };
+  type Agenda = { today: string; status: string; nextFree: { date: string; slot: Slot } | null; days: Day[] };
+
+  const SHORT = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+  const LONG = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
+  const WHERE = { gym: "Gym", casa: "Casa", ambos: "Casa o gym" } as const;
+  const ddmm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+  const wa = (msg: string) => `https://wa.me/${site.contact.whatsapp}?text=${encodeURIComponent(msg)}`;
+
+  const roots = document.querySelectorAll<HTMLElement>("[data-live-agenda]");
+
+  function render(root: HTMLElement, a: Agenda) {
+    const nowMin = bogotaParts(new Date()).minute;
+    const html = a.days
+      .map((d) => {
+        const today = d.date === a.today;
+        const out: string[] = [];
+        let placed = !today;
+        for (const s of d.slots) {
+          if (!placed && s.start >= nowMin) {
+            out.push(`<span class="la-now">${formatMinute(nowMin)}</span>`);
+            placed = true;
+          }
+          const t = formatMinute(s.start);
+          if (s.state === "free") {
+            const msg = `Hola, me interesa el horario del ${LONG[d.weekday]} ${ddmm(d.date)} a las ${t} (${WHERE[s.location].toLowerCase()}).`;
+            out.push(`<a class="la-slot la-free" href="${wa(msg)}" target="_blank" rel="noopener" aria-label="Libre ${LONG[d.weekday]} ${t}, ${WHERE[s.location]}. Escribir por WhatsApp">${t}<small>${WHERE[s.location]}</small></a>`);
+          } else if (s.state === "busy") out.push(`<span class="la-slot la-busy">${t}<small>Ocupado</small></span>`);
+          else out.push(`<span class="la-slot la-past">${t}</span>`);
+        }
+        if (!placed && d.slots.length) out.push(`<span class="la-now">${formatMinute(nowMin)}</span>`);
+        if (!d.slots.length) out.push(`<span class="la-empty">Sin horario</span>`);
+        return `<div class="la-day${today ? " is-today" : ""}"><div class="la-head"><b>${today ? "Hoy" : SHORT[d.weekday]}</b><small>${ddmm(d.date)}</small></div>${out.join("")}</div>`;
+      })
+      .join("");
+    root.innerHTML = `<div class="la-grid">${html}</div>`;
+    root.setAttribute("aria-busy", "false");
+  }
+
+  async function load() {
+    try {
+      const r = await fetch("/api/agenda/semana");
+      if (!r.ok) throw new Error(String(r.status));
+      const a = (await r.json()) as Agenda;
+      roots.forEach((root) => render(root, a));
+      document.dispatchEvent(new CustomEvent("agenda:data", { detail: a }));
+    } catch {
+      roots.forEach((root) => {
+        if (root.getAttribute("aria-busy") === "true") {
+          root.innerHTML = `<p class="la-error">No pudimos cargar la agenda. Escríbeme por WhatsApp y te digo qué horarios tengo libres.</p>`;
+          root.setAttribute("aria-busy", "false");
+        }
+      });
+      document.dispatchEvent(new CustomEvent("agenda:data", { detail: null }));
+    }
+  }
+  if (roots.length) {
+    load();
+    setInterval(load, 60_000);
+  }
+</script>
