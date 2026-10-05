@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "blado-coach",
+  "name": "blado",
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
   // main / assets are filled in by @astrojs/cloudflare at build time (dist/server/wrangler.json).
