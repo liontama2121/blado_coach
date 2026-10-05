@@ -11,9 +11,9 @@ import Companion from "@/components/mascota/Companion.astro";
 import { site, whatsappUrl } from "@/config/site";
 
 const mods = [
-  { t: "En casa", d: "Voy a tu casa. Entrenas con lo que tienes, sin traslados.", img: "/stock/casa-hombre.jpg", alt: "Hombre haciendo flexiones en la sala de su casa" },
-  { t: "En gimnasio", d: "Técnica, cargas y progresión en cada serie.", img: "/stock/gym-entreno.jpg", alt: "Entrenador guiando un peso muerto con mancuerna" },
-  { t: "Online", d: "Plan, check-in semanal y ajustes desde la app.", img: "/stock/casa-flexiones.jpg", alt: "Mujer entrenando en casa con su teléfono al lado" },
+  { t: "En casa", d: "Voy a tu casa. Entrenas con lo que tienes, sin traslados.", img: "/stock/casa-hombre.jpg", alt: "Hombre haciendo flexiones en la sala de su casa", wa: "Hola coach Blado, quiero entrenar en mi casa." },
+  { t: "En gimnasio", d: "Técnica, cargas y progresión en cada serie.", img: "/stock/gym-entreno.jpg", alt: "Entrenador guiando un peso muerto con mancuerna", wa: "Hola coach Blado, quiero entrenar en el gimnasio." },
+  { t: "Online", d: "Plan, check-in semanal y ajustes desde la app.", img: "/stock/casa-flexiones.jpg", alt: "Mujer entrenando en casa con su teléfono al lado", wa: "Hola coach Blado, quiero entrenar online." },
 ];
 
 // Gym gear floating around the wordmark. x/y in % of the hero, size in px (desktop), `desk` = desktop only.
@@ -114,11 +114,18 @@ const jsonLd = {
       <ul class="a-acc">
         {
           mods.map((m, i) => (
-            <li class:list={["a-acc-item", i === 0 && "is-open"]} tabindex="0">
+            <li class:list={["a-acc-item", i === 0 && "is-open"]} tabindex="0" aria-expanded={i === 0 ? "true" : "false"}>
               <img src={m.img} alt={m.alt} loading="lazy" />
               <div class="a-acc-copy">
                 <h3 class="a-h3">{m.t}</h3>
-                <p>{m.d}</p>
+                <div class="a-acc-more">
+                  <div>
+                    <p>{m.d}</p>
+                    <a href={whatsappUrl(m.wa)} target="_blank" rel="noopener" class="a-btn a-acc-wa">
+                      <Icon name="whatsapp" size={20} /> Escríbele al coach Blado
+                    </a>
+                  </div>
+                </div>
               </div>
             </li>
           ))
@@ -140,6 +147,9 @@ const jsonLd = {
       <h2 id="a-cta-t" class="a-final-word a-split">Empieza hoy</h2>
       <a href={whatsappUrl()} target="_blank" rel="noopener" class="a-btn">Escríbeme por WhatsApp <Icon name="arrowRight" size={18} /></a>
     </section>
+    <a href={whatsappUrl()} target="_blank" rel="noopener" class="a-wa-fab" data-hidden="true" aria-label="Escríbele al coach Blado por WhatsApp">
+      <Icon name="whatsapp" size={30} />
+    </a>
     <footer class="a-foot"><span>Fotos de stock temporales (Unsplash)</span><span>Hecho con amor por JuanCode</span></footer>
   </div>
   <LiveStatus />
@@ -529,14 +539,24 @@ const jsonLd = {
     cursor: pointer;
     transition: flex 0.7s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .a-acc-item.is-open,
-  .a-acc:hover .a-acc-item:hover,
-  .a-acc-item:focus-within,
-  .a-acc-item:focus {
+  .a-acc-item.is-open {
     flex: 3.2;
   }
-  .a-acc:hover .a-acc-item.is-open:not(:hover) {
-    flex: 1;
+  @media (hover: hover) and (pointer: fine) {
+    .a-acc:hover .a-acc-item:hover {
+      flex: 3.2;
+    }
+    .a-acc:hover .a-acc-item.is-open:not(:hover) {
+      flex: 1;
+    }
+    .a-acc-item:hover img {
+      filter: grayscale(0.1) brightness(0.8);
+      transform: scale(1.03);
+    }
+  }
+  .a-acc-item:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
   }
   .a-acc-item img {
     position: absolute;
@@ -544,13 +564,12 @@ const jsonLd = {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: grayscale(1) brightness(0.65);
+    filter: grayscale(1) brightness(0.55);
     transition:
       filter 0.6s,
       transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .a-acc-item.is-open img,
-  .a-acc-item:hover img {
+  .a-acc-item.is-open img {
     filter: grayscale(0.1) brightness(0.8);
     transform: scale(1.03);
   }
@@ -558,29 +577,96 @@ const jsonLd = {
     position: absolute;
     inset: auto 0 0 0;
     padding: 24px;
-    background: linear-gradient(0deg, rgba(10, 10, 9, 0.88), transparent);
+    background: linear-gradient(0deg, rgba(10, 10, 9, 0.92), rgba(10, 10, 9, 0.5) 70%, transparent);
   }
   .a-h3 {
     font-size: clamp(2.8rem, 5vw, 5rem);
   }
-  .a-acc-copy p {
+  /* description + WhatsApp only show on the open item */
+  .a-acc-more {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.3s;
+    overflow: hidden;
+  }
+  .a-acc-more > * {
+    min-height: 0;
+  }
+  .a-acc-item.is-open .a-acc-more {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-delay: 0.15s;
+  }
+  .a-acc-more p {
     margin: 8px 0 0;
     max-width: 36ch;
     color: #d6d7d1;
+  }
+  .a-acc-wa {
+    margin-top: 16px;
+  }
+  .a-acc-item:not(.is-open) .a-acc-wa {
+    visibility: hidden;
   }
   @media (max-width: 760px) {
     .a-acc {
       flex-direction: column;
       height: auto;
     }
-    .a-acc-item,
-    .a-acc-item.is-open,
-    .a-acc:hover .a-acc-item:hover {
+    .a-acc-item {
       flex: none;
-      height: 260px;
+      height: 112px;
+      transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .a-acc-item img {
-      filter: grayscale(0.1) brightness(0.75);
+    .a-acc-item.is-open {
+      flex: none;
+      height: 400px;
+    }
+    .a-acc-copy {
+      padding: 20px;
+    }
+    .a-h3 {
+      font-size: 2.6rem;
+    }
+    .a-acc-wa {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+
+  /* floating WhatsApp (bottom right; Bladimir lives bottom left) */
+  .a-wa-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 999px;
+    background: var(--lime);
+    color: #0a0a09;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.7);
+    transition:
+      transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+      opacity 0.25s;
+  }
+  .a-wa-fab:active {
+    transform: scale(0.94);
+  }
+  .a-wa-fab[data-hidden="true"] {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+    pointer-events: none;
+  }
+  @media (min-width: 761px) {
+    .a-wa-fab {
+      right: 32px;
+      bottom: 32px;
     }
   }
 
@@ -643,10 +729,32 @@ const jsonLd = {
 <script>
   import { animate, createAnimatable, createDraggable, createSpring, createTimeline, splitText, stagger, utils } from "animejs";
 
+  // Floating WhatsApp: hidden while the hero or the final CTA (both have their own WhatsApp button) are on screen.
+  const fab = document.querySelector<HTMLElement>(".a-wa-fab");
+  const fabWatch = [".a-hero", "#a-cta"].map((q) => document.querySelector(q)).filter(Boolean) as Element[];
+  if (fab) {
+    const seen = new Set<Element>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) e.isIntersecting ? seen.add(e.target) : seen.delete(e.target);
+        fab.dataset.hidden = String(seen.size > 0);
+      },
+      { threshold: 0.15 },
+    );
+    fabWatch.forEach((el) => io.observe(el));
+  }
+
   // Accordion: keyboard/tap opens an item.
   document.querySelectorAll<HTMLElement>(".a-acc-item").forEach((li, _, all) => {
-    const open = () => all.forEach((x) => x.classList.toggle("is-open", x === li));
-    li.addEventListener("click", open);
+    const open = () =>
+      all.forEach((x) => {
+        x.classList.toggle("is-open", x === li);
+        x.setAttribute("aria-expanded", String(x === li));
+      });
+    li.addEventListener("click", (e) => {
+      if ((e.target as HTMLElement).closest("a")) return;
+      open();
+    });
     li.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open()));
   });
 
@@ -729,7 +837,7 @@ const jsonLd = {
       reveal(steps[0]!, () => animate(steps, { opacity: 1, y: 0, duration: 800, delay: stagger(110), ease: "outExpo" }));
     }
     const acc = document.querySelectorAll(".a-acc-item");
-    if (acc.length) {
+    if (acc.length && finePointer) {
       utils.set(acc, { opacity: 0, y: 40 });
       reveal(acc[0]!, () => animate(acc, { opacity: 1, y: 0, duration: 900, delay: stagger(120), ease: "outExpo" }));
     }

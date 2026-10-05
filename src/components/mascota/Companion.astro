@@ -62,7 +62,8 @@ import { whatsappUrl } from "@/config/site";
   }
   .bl-bubble {
     position: relative;
-    max-width: min(300px, calc(100vw - 132px));
+    /* leaves room on the right for the floating WhatsApp button */
+    max-width: min(300px, calc(100vw - 196px));
     padding: 14px 36px 14px 16px;
     margin-bottom: 18px;
     border-radius: 18px 18px 18px 4px;
