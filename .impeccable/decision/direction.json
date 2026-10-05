@@ -1,0 +1,122 @@
+{
+  "title": "Blado: elige el mundo visual",
+  "question": "La tirada asignó Cartel Fluorescente. Quédatela, toma una alternativa o vuelve a tirar.",
+  "options": [
+    {
+      "id": "assigned",
+      "label": "Cartel Fluorescente",
+      "kicker": "THE ROLL",
+      "lineage": "Carteles tipográficos de verbena y conciertos de la costa colombiana, tipos de madera sobre papel fluorescente",
+      "thesis": "Cada avance del estudiante se anuncia como un cartel de evento: BLADO en tipos de madera condensados sobre papel lima.",
+      "palette": ["#C8FF00", "#111311", "#F2F4EC", "#FF3EA5"],
+      "materials": ["tipos de madera condensados", "papel fluorescente", "tinta negra sobreimpresa"],
+      "viewport": "Cartel a sangre en lima: BLADO en condensada gigante de borde a borde, franjas de texto con En casa / En gym / Online como en un cartel de evento, y la CTA de WhatsApp como sello negro.",
+      "risk": "Con tipo tímido parece volante barato; exige escala real, y el panel necesita su versión más sobria del mismo sistema.",
+      "raised": [
+        {"from": "challenger-riso", "raise": "Sobreimpresión: en el comparador, dos meses se superponen como dos tintas en multiply y el cambio aparece donde no coinciden."},
+        {"from": "challenger-nixie", "raise": "Cifras como tipos móviles: cada KPI ocupa casillas de dígitos fijas que cambian una a una, nunca saltan."},
+        {"from": "challenger-accretion", "raise": "Estados con nombre: cada métrica declara bajando, estable, subiendo o sin dato, rotulado en el cartel."},
+        {"from": "challenger-sand", "raise": "Sello de meta: el progreso hacia el objetivo es un sello circular rotulado que se completa."}
+      ]
+    },
+    {
+      "id": "model-pick",
+      "label": "Cronómetro de Box",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "Reloj LED de intervalos colgado en la pared de todo box y gimnasio",
+      "thesis": "La marca habla en segundos, repeticiones y centímetros, como el reloj de la pared del box.",
+      "palette": ["#0E100E", "#C8FF00", "#2A2E2A", "#E9ECE6"],
+      "materials": ["dígitos LED de 7 segmentos", "panel negro mate", "goma de piso de gimnasio"],
+      "viewport": "Panel negro con el reloj LED contando semanas de proceso, BLADO en condensada y CTA lima.",
+      "risk": "Es donde caen casi todas las marcas de gym: negro con un neón. Familiar y efectivo, poco recordable."
+    },
+    {
+      "id": "challenger-quote",
+      "label": "Etiqueta Industrial",
+      "verdict": "competitive",
+      "lineage": "Streetwear industrial: palabras entre comillas rectas, etiquetas de amarre, franjas de peligro",
+      "thesis": "Todo se llama por su nombre entre comillas: \"PESO\", \"CINTURA\", \"TU PLAN\", con franjas diagonales negro sobre lima.",
+      "palette": ["#F2F3EF", "#121212", "#C8FF00", "#8A8F86"],
+      "materials": ["algodón blanco", "nylon negro", "franja de peligro a 45 grados", "etiqueta de amarre lima"],
+      "viewport": "Mayúsculas condensadas entre comillas rectas, \"ENTRENA\", con una franja de peligro lima cruzando bajo la CTA.",
+      "case": "Funde bien con el público joven de gym en Bogotá; pierde en claridad del panel, donde las comillas cansan.",
+      "risk": "Puede leerse como marca de ropa más que como servicio de entrenamiento."
+    },
+    {
+      "id": "challenger-board",
+      "label": "Tablero de Salidas",
+      "verdict": "competitive",
+      "lineage": "Pase de abordar segmentado y tablero de salidas que reordena vuelos",
+      "thesis": "El estudiante tiene su pase de proceso; el coach ve un tablero que reordena por próxima medición y deja encendido cada cambio hasta que lo revisa.",
+      "palette": ["#101214", "#E8EBE6", "#C8FF00", "#5C6360"],
+      "materials": ["paletas split-flap", "cifras tabulares", "segmentos troquelados"],
+      "viewport": "Pase de abordar gigante con BLADO, modalidad como puerta y fecha de valoración como salida.",
+      "case": "Gana en claridad del panel; pierde identificación en la landing, donde el público no piensa en aeropuertos.",
+      "risk": "Landing fría, con más de aeropuerto que de entrenamiento."
+    },
+    {
+      "id": "challenger-riso",
+      "label": "Risografía",
+      "verdict": "declined",
+      "lineage": "Impresión riso con tintas fluorescentes desalineadas",
+      "thesis": "Tintas fluo que se cruzan con grano.",
+      "palette": ["#F1EFE6", "#FF48B0", "#0078BF"],
+      "materials": ["grano riso", "tintas spot"],
+      "viewport": "Formas recortadas fuera de registro.",
+      "case": "Primo del cartel pero sin raíz colombiana y sin el lima fijado.",
+      "risk": "Lectura de fanzine, no de gym.",
+      "kept": "La sobreimpresión en multiply, ahora en el comparador."
+    },
+    {
+      "id": "challenger-nixie",
+      "label": "Contador Nixie",
+      "verdict": "declined",
+      "lineage": "Contadores de laboratorio con tubos nixie",
+      "thesis": "Cada cantidad llega como plasma visible.",
+      "palette": ["#141414", "#FF7A1A", "#6B6B6B"],
+      "materials": ["vidrio", "acero"],
+      "viewport": "Bancos de tubos con métricas.",
+      "case": "Naranja de laboratorio, ajeno al gym y al lima.",
+      "risk": "Nostalgia técnica.",
+      "kept": "Dígitos en casillas fijas que cambian como evento físico."
+    },
+    {
+      "id": "challenger-accretion",
+      "label": "Disco de Acreción",
+      "verdict": "declined",
+      "lineage": "Agujero negro y horizonte de eventos",
+      "thesis": "Materia que cruza un umbral.",
+      "palette": ["#050608", "#CFE3FF", "#D9A441"],
+      "materials": ["luz curvada", "anillos"],
+      "viewport": "Anillo de luz alrededor de un centro negro.",
+      "case": "Sin relación con el público ni con el servicio.",
+      "risk": "Espectáculo sin mensaje.",
+      "kept": "Vocabulario explícito de estados para cada métrica."
+    },
+    {
+      "id": "challenger-sand",
+      "label": "Arena Cinética",
+      "verdict": "declined",
+      "lineage": "Superficie de control afrofuturista con anillos de glifos",
+      "thesis": "Anillos de glifos que giran.",
+      "palette": ["#B57A2E", "#3B2A1A", "#0F0F0F", "#D4AF37"],
+      "materials": ["arena en relieve", "oro"],
+      "viewport": "Dial circular de glifos.",
+      "case": "Ocre y oro, lejos del lima y del gym.",
+      "risk": "Ilegible como servicio.",
+      "kept": "El progreso como dial o sello que se completa."
+    }
+  ],
+  "reroll": {"registers": ["safer", "bolder"]},
+  "buildPath": {"value": "code", "toggle": false},
+  "canon": true,
+  "canonCard": {
+    "label": "Estándar de gimnasio",
+    "thesis": "Lo que publica todo coach: foto grande, negro, mayúsculas condensadas y CTA lima.",
+    "palette": ["#0F0F0F", "#FFFFFF", "#C8FF00"],
+    "materials": ["foto del coach a sangre", "grilla limpia"],
+    "viewport": "Foto del coach a la derecha, titular condensado a la izquierda, CTA lima y tres servicios debajo.",
+    "risk": "Idéntica a la competencia por diseño."
+  },
+  "steer": true
+}

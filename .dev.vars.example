@@ -1,0 +1,4 @@
+# Copiar a .dev.vars para desarrollo local. Nunca subir .dev.vars al repo.
+# Secreto para firmar URLs temporales de archivos privados (fotos, autorizaciones).
+# Generar con: node -e "console.log(crypto.randomBytes(32).toString('base64url'))"
+FILE_URL_SECRET=cambia-esto-por-un-valor-aleatorio-largo

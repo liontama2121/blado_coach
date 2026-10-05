@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+/*
+ * Blado design tokens: direction "Negro Lima".
+ * The landing is graphite with lime used only for action, the key word and the band.
+ * The panel (/coach, /app) uses the light "paper" surface for data legibility.
+ */
+@theme {
+  --color-ink: #0d0e0d;
+  --color-graphite: #161816;
+  --color-line: #232623;
+  --color-bone: #edefea;
+  --color-mute: #5b615c;
+  --color-mute-2: #a9aea8;
+  --color-lime: #c8ff1a;
+  --color-lime-ink: #0d0e0d;
+  --color-paper: #f2f3f0;
+  --color-card: #ffffff;
+
+  --color-ok: #2f8f4e;
+  --color-warn: #b7791f;
+  --color-alert: #c2410c;
+
+  --font-display: "Sofia Sans Extra Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, Consolas, monospace;
+
+  --radius-none: 0;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply font-sans antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-lime);
+    outline-offset: 3px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

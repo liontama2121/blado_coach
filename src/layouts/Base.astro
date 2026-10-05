@@ -1,0 +1,39 @@
+---
+import "@/styles/global.css";
+import { site } from "@/config/site";
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Private pages (login, panel) must never be indexed. */
+  noindex?: boolean;
+  theme?: "dark" | "light";
+}
+
+const { title, description = "", noindex = false, theme = "dark" } = Astro.props;
+const canonical = new URL(Astro.url.pathname, site.url).toString();
+---
+
+<!doctype html>
+<html lang="es-CO" data-theme={theme}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {noindex ? <meta name="robots" content="noindex, nofollow" /> : <link rel="canonical" href={canonical} />}
+    <meta name="theme-color" content={theme === "dark" ? "#0d0e0d" : "#f2f3f0"} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- TODO Fase 2: self-host fonts (Lighthouse/LCP). Google Fonts link for now. -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Sofia+Sans+Extra+Condensed:ital,wght@0,700;0,900;1,900&display=swap"
+    />
+    <slot name="head" />
+  </head>
+  <body class={theme === "dark" ? "bg-ink text-bone" : "bg-paper text-ink"}>
+    <slot />
+  </body>
+</html>

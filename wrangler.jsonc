@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "blado-coach",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // main / assets are filled in by @astrojs/cloudflare at build time (dist/server/wrangler.json).
+  "observability": { "enabled": true },
+
+  // Base de datos principal. Crear con: npx wrangler d1 create blado-db
+  // y pegar aquí el database_id que devuelve el comando.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blado-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "db/migrations"
+    }
+  ],
+
+  // Bucket PRIVADO para fotos de progreso y autorizaciones médicas.
+  // Crear con: npx wrangler r2 bucket create blado-private
+  // Nunca habilitar acceso público (r2.dev ni dominio propio) en este bucket.
+  "r2_buckets": [
+    { "binding": "PRIVATE_FILES", "bucket_name": "blado-private" }
+  ],
+
+  "vars": {
+    "SESSION_TTL_DAYS": "14",
+    "TRAVEL_BUFFER_MIN": "30"
+  }
+  // Secretos (no van aquí): `npx wrangler secret put FILE_URL_SECRET`
+  // En local se ponen en .dev.vars (ver .dev.vars.example).
+}
