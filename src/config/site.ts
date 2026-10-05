@@ -7,7 +7,7 @@
 
 export const site = {
   brand: "Blado",
-  url: "https://blado.example.com", // TODO: REEMPLAZAR (también en astro.config.mjs)
+  url: "https://blado.coach", // también en astro.config.mjs
   locale: "es-CO",
   currency: "COP",
   city: "Bogotá",

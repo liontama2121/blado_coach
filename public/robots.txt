@@ -4,4 +4,4 @@ Disallow: /login
 Disallow: /coach/
 Disallow: /app/
 Disallow: /api/
-Sitemap: https://blado.example.com/sitemap.xml
+Sitemap: https://blado.coach/sitemap.xml
