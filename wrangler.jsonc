@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "blado-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "f5f83e1c-b9d4-49e7-939d-0ad4ebfe3eca",
       "migrations_dir": "db/migrations"
     }
   ],
@@ -20,9 +20,10 @@
   // Bucket PRIVADO para fotos de progreso y autorizaciones médicas.
   // Crear con: npx wrangler r2 bucket create blado-private
   // Nunca habilitar acceso público (r2.dev ni dominio propio) en este bucket.
-  "r2_buckets": [
-    { "binding": "PRIVATE_FILES", "bucket_name": "blado-private" }
-  ],
+  // Pendiente: R2 aún no está activado en la cuenta (Dashboard → R2). Descomentar en la Fase 5.
+  // "r2_buckets": [
+  //   { "binding": "PRIVATE_FILES", "bucket_name": "blado-private" }
+  // ],
 
   "vars": {
     "SESSION_TTL_DAYS": "14",
