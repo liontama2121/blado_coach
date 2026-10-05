@@ -1,48 +1,53 @@
 ---
+// Home (chosen design, propuesta A). Solid-lime elongated wordmark that floats, gym gear drifting around it (anime.js),
+// live agenda, accordion photo slider. Mobile-first adjustments included.
 export const prerender = true;
+import "@fontsource-variable/league-gothic/wdth";
 import Base from "@/layouts/Base.astro";
-import Nav from "@/components/landing/Nav.astro";
-import Hero from "@/components/landing/Hero.astro";
-import Agenda from "@/components/landing/Agenda.astro";
-import Coach from "@/components/landing/Coach.astro";
-import Modalidades from "@/components/landing/Modalidades.astro";
-import Proceso from "@/components/landing/Proceso.astro";
-import Seguimiento from "@/components/landing/Seguimiento.astro";
-import Planes from "@/components/landing/Planes.astro";
-import Testimonios from "@/components/landing/Testimonios.astro";
-import Faq from "@/components/landing/Faq.astro";
-import Contacto from "@/components/landing/Contacto.astro";
-import Footer from "@/components/landing/Footer.astro";
-import WhatsAppFloat from "@/components/landing/WhatsAppFloat.astro";
-import { site } from "@/config/site";
-import { faqs } from "@/content/landing";
+import Icon, { type IconName } from "@/components/Icon.astro";
+import LiveAgenda from "@/components/live/LiveAgenda.astro";
+import LiveStatus from "@/components/live/LiveStatus.astro";
+import Companion from "@/components/mascota/Companion.astro";
+import { site, whatsappUrl } from "@/config/site";
+
+const mods = [
+  { t: "En casa", d: "Voy a tu casa. Entrenas con lo que tienes, sin traslados.", img: "/stock/casa-hombre.jpg", alt: "Hombre haciendo flexiones en la sala de su casa" },
+  { t: "En gimnasio", d: "Técnica, cargas y progresión en cada serie.", img: "/stock/gym-entreno.jpg", alt: "Entrenador guiando un peso muerto con mancuerna" },
+  { t: "Online", d: "Plan, check-in semanal y ajustes desde la app.", img: "/stock/casa-flexiones.jpg", alt: "Mujer entrenando en casa con su teléfono al lado" },
+];
+
+// Gym gear floating around the wordmark. x/y in % of the hero, size in px (desktop), `desk` = desktop only.
+// mx/my = position on phones (where the wordmark fills the width).
+const gear: { icon: IconName; x: number; y: number; mx?: number; my?: number; size: number; tone: "lime" | "bone"; desk?: boolean }[] = [
+  { icon: "barbell", x: 8, y: 22, mx: 6, my: 11, size: 92, tone: "lime" },
+  { icon: "kettlebell", x: 84, y: 16, mx: 82, my: 11, size: 78, tone: "bone" },
+  { icon: "weight", x: 88, y: 58, mx: 10, my: 48, size: 70, tone: "lime" },
+  { icon: "stopwatch", x: 4, y: 60, size: 60, tone: "bone", desk: true },
+  { icon: "jumpRope", x: 30, y: 12, size: 58, tone: "bone", desk: true },
+  { icon: "heartRate", x: 66, y: 9, size: 56, tone: "lime", desk: true },
+  { icon: "kettlebell", x: 18, y: 72, size: 52, tone: "lime", desk: true },
+];
 
 const title = `${site.brand} · Entrenador personal en ${site.city}, en casa y en gimnasio`;
 const description =
   "Entrenamiento personal en Bogotá a domicilio y en gimnasio, con seguimiento online. Valoración inicial, plan personalizado y medición de tu progreso cada mes.";
 const ogImage = new URL("/og.jpg", site.url).toString(); // TODO: REEMPLAZAR, crear public/og.jpg 1200x630
 
-const jsonLd = [
-  {
-    "@context": "https://schema.org",
-    "@type": "LocalBusiness",
-    additionalType: "https://schema.org/HealthAndBeautyBusiness",
-    name: site.brand,
-    description,
-    url: site.url,
-    image: ogImage,
-    telephone: `+${site.contact.whatsapp}`,
-    areaServed: { "@type": "City", name: site.city },
-    address: { "@type": "PostalAddress", addressLocality: site.city, addressCountry: site.country },
-    sameAs: [site.social.instagram, site.social.tiktok].filter(Boolean),
-    priceRange: "$$",
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-  },
-];
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  additionalType: "https://schema.org/HealthAndBeautyBusiness",
+  name: site.brand,
+  description,
+  url: site.url,
+  image: ogImage,
+  telephone: `+${site.contact.whatsapp}`,
+  areaServed: { "@type": "City", name: site.city },
+  address: { "@type": "PostalAddress", addressLocality: site.city, addressCountry: site.country },
+  sameAs: [site.social.instagram, site.social.tiktok].filter(Boolean),
+  priceRange: "$$",
+};
+
 ---
 
 <Base title={title} description={description}>
@@ -57,21 +62,691 @@ const jsonLd = [
     <meta name="twitter:card" content="summary_large_image" />
     <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
   </Fragment>
+  <div class="A">
+    <header class="a-nav">
+      <a href="/" class="a-logo">Blado</a>
+      <nav aria-label="Principal"><a href="#a-agenda">Agenda</a><a href="#a-mod">Modalidades</a><a href="#a-cta">Contacto</a></nav>
+      <div class="a-nav-actions">
+        <a href="/login" class="a-login"><Icon name="user" size={18} /> <span>Iniciar sesión</span></a>
+        <a href="#a-cta" class="a-btn a-btn-sm"><span class="a-only-desk">Agenda tu valoración</span><span class="a-only-mob">Valoración</span></a>
+      </div>
+    </header>
 
-  <a href="#contenido" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:bg-lime focus:px-4 focus:py-3 focus:text-ink">Saltar al contenido</a>
-  <Nav />
-  <main id="contenido">
-    <Hero />
-    <Agenda />
-    <Modalidades />
-    <Proceso />
-    <Seguimiento />
-    <Coach />
-    <Planes />
-    <Testimonios />
-    <Faq />
-    <Contacto />
-  </main>
-  <Footer />
-  <WhatsAppFloat />
+    <section class="a-hero" aria-labelledby="a-h1" data-guide="wave" data-guide-text="¡Hola! Soy Bladimir, tu coach. Entreno contigo en casa o en el gym.">
+      <img class="a-hero-bg" src="/stock/coach-cliente.jpg" alt="" aria-hidden="true" fetchpriority="high" />
+
+      <div class="a-gear-layer" aria-hidden="true">
+        {
+          gear.map((g) => (
+            <span
+              class:list={["a-gym", `a-gym-${g.tone}`, g.desk && "a-only-desk-flex"]}
+              style={`--x:${g.x}%;--y:${g.y}%;--mx:${g.mx ?? g.x}%;--my:${g.my ?? g.y}%;--s:${g.size}px`}
+            >
+              <span class="a-gym-in">
+                <Icon name={g.icon} size={g.size} stroke={1.5} />
+              </span>
+            </span>
+          ))
+        }
+      </div>
+
+      <p class="a-mask" aria-hidden="true">Blado</p>
+
+      <div class="a-hero-foot">
+        <h1 id="a-h1" class="a-h1">Entrena con intención</h1>
+        <p class="a-lead">Coach personal en Bogotá, en tu casa o en tu gimnasio. Medimos tu progreso cada mes.</p>
+        <div class="a-ctas">
+          <a href="#a-cta" class="a-btn">Agenda tu valoración <Icon name="arrowRight" size={18} /></a>
+          <a href={whatsappUrl()} target="_blank" rel="noopener" class="a-link"><Icon name="whatsapp" size={20} /> WhatsApp</a>
+        </div>
+        <p class="a-live"><span class="a-dot" data-ls-dot></span><span data-ls-status>Consultando agenda</span><span class="a-sep"></span>Próximo libre <strong data-ls-next>...</strong></p>
+      </div>
+    </section>
+
+    <section id="a-agenda" class="a-sec" aria-labelledby="a-agenda-t" data-guide="point" data-guide-text="Esta es mi semana en vivo. Toca un horario en lima y me escribes.">
+      <h2 id="a-agenda-t" class="a-h2 a-split">Agenda en vivo</h2>
+      <p class="a-lead">Los próximos 7 días del coach, hora de Bogotá. Toca un horario libre y lo apartas por WhatsApp.</p>
+      <div class="a-agenda"><LiveAgenda /></div>
+    </section>
+
+    <section id="a-mod" class="a-sec" aria-labelledby="a-mod-t" data-guide="lift" data-guide-text="En tu casa, en tu gym u online. Tú eliges, yo me adapto.">
+      <h2 id="a-mod-t" class="a-h2 a-split">¿Dónde entrenas?</h2>
+      <ul class="a-acc">
+        {
+          mods.map((m, i) => (
+            <li class:list={["a-acc-item", i === 0 && "is-open"]} tabindex="0">
+              <img src={m.img} alt={m.alt} loading="lazy" />
+              <div class="a-acc-copy">
+                <h3 class="a-h3">{m.t}</h3>
+                <p>{m.d}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="a-sec" aria-labelledby="a-proc-t" data-guide="selfie" data-guide-text="Cada mes medimos y tomamos fotos privadas. Así vemos tu avance de verdad.">
+      <h2 id="a-proc-t" class="a-h2 a-split">Medido, no adivinado</h2>
+      <ol class="a-steps">
+        <li><b class="a-num">Valoración</b><span>Salud, medidas, composición corporal y pruebas físicas.</span></li>
+        <li><b class="a-num">Plan</b><span>Según tu objetivo, tus días y el equipo que tienes.</span></li>
+        <li><b class="a-num">Medición</b><span>Cada 4 semanas, medidas y fotos de progreso privadas.</span></li>
+        <li><b class="a-num">Ajustes</b><span>Tus números deciden el siguiente paso.</span></li>
+      </ol>
+    </section>
+
+    <section id="a-cta" class="a-final" aria-labelledby="a-cta-t" data-guide="celebrate" data-guide-text="¿Arrancamos? Tu primera sesión empieza con una valoración." data-guide-cta="whatsapp" data-guide-cta-label="Escríbeme por WhatsApp">
+      <h2 id="a-cta-t" class="a-final-word a-split">Empieza hoy</h2>
+      <a href={whatsappUrl()} target="_blank" rel="noopener" class="a-btn">Escríbeme por WhatsApp <Icon name="arrowRight" size={18} /></a>
+    </section>
+    <footer class="a-foot"><span>Fotos de stock temporales (Unsplash)</span><span>Hecho con amor por JuanCode</span></footer>
+  </div>
+  <LiveStatus />
+  <Companion />
 </Base>
+
+<style is:global>
+  .A {
+    --bg: #0a0a09;
+    --bg2: #141513;
+    --fg: #f1f1ec;
+    --mute: #a3a59e;
+    --line: #242522;
+    --lime: #c8ff1a;
+    --disp: "League Gothic Variable", "Arial Narrow", sans-serif;
+    --pad: clamp(16px, 4vw, 56px);
+    background: var(--bg);
+    color: var(--fg);
+    overflow-x: clip;
+  }
+  .A .la {
+    --la-bg: var(--bg2);
+    --la-display: var(--disp);
+    --la-bleed: var(--pad);
+  }
+  .A .la-head b {
+    font-variation-settings: "wdth" 75;
+    font-size: 2.2rem;
+  }
+  .a-h1,
+  .a-h2,
+  .a-h3,
+  .a-num,
+  .a-logo,
+  .a-mask,
+  .a-final-word {
+    font-family: var(--disp);
+    font-variation-settings: "wdth" 75;
+    font-weight: 400;
+    text-transform: uppercase;
+    line-height: 0.86;
+    letter-spacing: 0.005em;
+    margin: 0;
+  }
+  .a-only-mob,
+  .a-only-desk-flex {
+    display: none;
+  }
+  @media (min-width: 761px) {
+    .a-only-desk-flex {
+      display: block;
+    }
+  }
+  @media (max-width: 760px) {
+    .a-only-desk {
+      display: none;
+    }
+    .a-only-mob {
+      display: inline;
+    }
+  }
+
+  .a-nav {
+    position: absolute;
+    inset: 0 0 auto 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 72px;
+    padding-inline: var(--pad);
+  }
+  .a-nav nav {
+    display: flex;
+    gap: 32px;
+    font-size: 14px;
+  }
+  .a-nav nav a {
+    color: var(--fg);
+    text-decoration: none;
+    opacity: 0.75;
+  }
+  .a-nav nav a:hover {
+    opacity: 1;
+  }
+  @media (max-width: 860px) {
+    .a-nav nav {
+      display: none;
+    }
+  }
+  .a-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .a-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid rgba(241, 241, 236, 0.35);
+    border-radius: 999px;
+    color: var(--fg);
+    font: 600 13px/1 var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .a-login:hover {
+    border-color: var(--lime);
+    color: var(--lime);
+  }
+  @media (max-width: 420px) {
+    .a-login span {
+      display: none;
+    }
+    .a-login {
+      width: 40px;
+      padding: 0;
+      justify-content: center;
+    }
+  }
+  .a-logo {
+    font-size: 34px;
+    color: var(--lime);
+    text-decoration: none;
+  }
+  .a-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    height: 54px;
+    padding: 0 26px;
+    border-radius: 999px;
+    background: var(--lime);
+    color: #0a0a09;
+    font: 600 15px/1 var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .a-btn:hover {
+    transform: translateY(-1px);
+  }
+  .a-btn:active {
+    transform: scale(0.98);
+  }
+  .a-btn-sm {
+    height: 40px;
+    padding: 0 18px;
+    font-size: 13px;
+  }
+  .a-link {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1.5px solid currentColor;
+    padding-bottom: 3px;
+  }
+  .A :focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+
+  /* HERO */
+  .a-hero {
+    position: relative;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 72px var(--pad) 32px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .a-hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 35% 30%;
+    filter: grayscale(1) brightness(0.32) contrast(1.1);
+    z-index: -2;
+  }
+  .a-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(0deg, var(--bg) 4%, rgba(10, 10, 9, 0.2) 45%, rgba(10, 10, 9, 0.55) 100%);
+    pointer-events: none;
+  }
+  .a-mask {
+    position: relative;
+    z-index: 2;
+    align-self: center;
+    justify-self: center;
+    font-size: clamp(14rem, 44vw, 46rem);
+    line-height: 0.78;
+    color: var(--lime);
+    user-select: none;
+    white-space: nowrap;
+  }
+  .a-char {
+    display: inline-block;
+    will-change: transform;
+  }
+
+  /* floating gym gear */
+  .a-gear-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .a-gym {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: var(--s);
+    height: var(--s);
+    pointer-events: auto;
+    cursor: grab;
+    touch-action: none;
+  }
+  .a-gym:active {
+    cursor: grabbing;
+  }
+  .a-gym-in {
+    display: block;
+    width: 100%;
+    height: 100%;
+    will-change: transform;
+  }
+  .a-gym-in svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .a-gym-lime {
+    color: var(--lime);
+  }
+  .a-gym-bone {
+    color: rgba(241, 241, 236, 0.55);
+  }
+
+  .a-hero-foot {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 24px 40px;
+    border-top: 1px solid var(--line);
+    padding-top: 24px;
+  }
+  .a-h1 {
+    font-size: clamp(3.2rem, 6vw, 6rem);
+  }
+  .a-lead {
+    margin: 0;
+    color: var(--mute);
+    font-size: clamp(1rem, 1.2vw, 1.15rem);
+    line-height: 1.5;
+    max-width: 44ch;
+  }
+  .a-ctas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 22px;
+  }
+  .a-live {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .a-live strong,
+  .a-live [data-ls-status] {
+    color: var(--fg);
+    font-variant-numeric: tabular-nums;
+  }
+  .a-sep {
+    width: 1px;
+    height: 14px;
+    background: var(--line);
+    margin-inline: 6px;
+  }
+  .a-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #777;
+  }
+  .a-dot[data-state="disponible"] {
+    background: var(--lime);
+    box-shadow: 0 0 0 4px rgba(200, 255, 26, 0.18);
+  }
+  .a-dot[data-state="ocupado"] {
+    background: #ff5a36;
+  }
+
+  /* hero on phones */
+  @media (max-width: 960px) {
+    .a-hero-foot {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 760px) {
+    .a-hero {
+      padding-top: 64px;
+      padding-bottom: 24px;
+    }
+    .a-nav {
+      height: 64px;
+    }
+    .a-logo {
+      font-size: 30px;
+    }
+    .a-mask {
+      font-size: 74vw;
+      margin-block: 8px;
+    }
+    .a-gym {
+      left: var(--mx);
+      top: var(--my);
+      width: calc(var(--s) * 0.55);
+      height: calc(var(--s) * 0.55);
+    }
+    .a-h1 {
+      font-size: 3.4rem;
+    }
+    .a-ctas {
+      display: grid;
+      gap: 16px;
+    }
+    .a-ctas .a-btn {
+      width: 100%;
+    }
+    .a-ctas .a-link {
+      justify-self: start;
+    }
+  }
+
+  /* sections */
+  .a-sec {
+    padding: clamp(72px, 10vw, 140px) var(--pad);
+    border-top: 1px solid var(--line);
+    display: grid;
+    gap: 24px;
+  }
+  .a-sec > * {
+    min-width: 0;
+  }
+  .a-h2 {
+    font-size: clamp(3.8rem, 10vw, 10rem);
+  }
+  .a-agenda {
+    margin-top: 16px;
+  }
+
+  /* accordion image slider */
+  .a-acc {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: flex;
+    gap: 8px;
+    height: clamp(420px, 60vh, 640px);
+  }
+  .a-acc-item {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: flex 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .a-acc-item.is-open,
+  .a-acc:hover .a-acc-item:hover,
+  .a-acc-item:focus-within,
+  .a-acc-item:focus {
+    flex: 3.2;
+  }
+  .a-acc:hover .a-acc-item.is-open:not(:hover) {
+    flex: 1;
+  }
+  .a-acc-item img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(1) brightness(0.65);
+    transition:
+      filter 0.6s,
+      transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .a-acc-item.is-open img,
+  .a-acc-item:hover img {
+    filter: grayscale(0.1) brightness(0.8);
+    transform: scale(1.03);
+  }
+  .a-acc-copy {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 24px;
+    background: linear-gradient(0deg, rgba(10, 10, 9, 0.88), transparent);
+  }
+  .a-h3 {
+    font-size: clamp(2.8rem, 5vw, 5rem);
+  }
+  .a-acc-copy p {
+    margin: 8px 0 0;
+    max-width: 36ch;
+    color: #d6d7d1;
+  }
+  @media (max-width: 760px) {
+    .a-acc {
+      flex-direction: column;
+      height: auto;
+    }
+    .a-acc-item,
+    .a-acc-item.is-open,
+    .a-acc:hover .a-acc-item:hover {
+      flex: none;
+      height: 260px;
+    }
+    .a-acc-item img {
+      filter: grayscale(0.1) brightness(0.75);
+    }
+  }
+
+  /* steps */
+  .a-steps {
+    list-style: none;
+    margin: 24px 0 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    border-top: 2px solid var(--lime);
+  }
+  .a-steps li {
+    padding: 24px 24px 0 0;
+    display: grid;
+    gap: 12px;
+    color: var(--mute);
+  }
+  .a-num {
+    font-size: clamp(2.8rem, 4.4vw, 4.4rem);
+    color: var(--fg);
+  }
+  @media (max-width: 860px) {
+    .a-steps {
+      grid-template-columns: 1fr 1fr;
+      gap: 28px 0;
+    }
+  }
+  @media (max-width: 420px) {
+    .a-steps {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* final */
+  .a-final {
+    padding: clamp(72px, 10vw, 140px) var(--pad);
+    border-top: 1px solid var(--line);
+    display: grid;
+    justify-items: start;
+    gap: 36px;
+  }
+  .a-final-word {
+    font-size: clamp(7rem, 26vw, 28rem);
+    line-height: 0.78;
+    color: var(--lime);
+  }
+  .a-foot {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 24px var(--pad);
+    font-size: 13px;
+    color: var(--mute);
+    border-top: 1px solid var(--line);
+  }
+</style>
+
+<script>
+  import { animate, createAnimatable, createDraggable, createSpring, createTimeline, splitText, stagger, utils } from "animejs";
+
+  // Accordion: keyboard/tap opens an item.
+  document.querySelectorAll<HTMLElement>(".a-acc-item").forEach((li, _, all) => {
+    const open = () => all.forEach((x) => x.classList.toggle("is-open", x === li));
+    li.addEventListener("click", open);
+    li.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open()));
+  });
+
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const finePointer = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  if (!reduce) {
+    // 1. Intro: the wordmark rises letter by letter, then the gym gear pops into place.
+    const word = splitText(".a-mask", { chars: { class: "a-char" } });
+    const intro = createTimeline({ defaults: { ease: "outExpo" } })
+      .add(word.chars, { y: ["35%", "0%"], opacity: [0, 1], duration: 1100, delay: stagger(70) })
+      .add(".a-gym", { scale: [0, 1], rotate: [-120, 0], opacity: [0, 1], duration: 900, delay: stagger(70), ease: "outBack(1.7)" }, "-=800")
+      .add(".a-hero-foot > *", { y: [24, 0], opacity: [0, 1], duration: 800, delay: stagger(70) }, "-=700");
+
+    // 2. Logo floats: a slow wave runs through the letters, forever.
+    intro.then(() => {
+      animate(word.chars, {
+        y: ["-1.6%", "1.6%"],
+        rotate: [-0.6, 0.6],
+        duration: 2400,
+        delay: stagger(160),
+        loop: true,
+        alternate: true,
+        ease: "inOutSine",
+      });
+    });
+
+    // 3. Gym gear drifts, each piece on its own rhythm.
+    document.querySelectorAll<HTMLElement>(".a-gym-in").forEach((el) => {
+      animate(el, {
+        y: [0, utils.random(-26, -12)],
+        x: [0, utils.random(-14, 14)],
+        rotate: [utils.random(-10, 10), utils.random(-22, 22)],
+        duration: utils.random(2600, 4400),
+        delay: utils.random(0, 900),
+        loop: true,
+        alternate: true,
+        ease: "inOutSine",
+      });
+    });
+
+    // 4. Desktop: grab and throw the gear; the whole layer follows the pointer a little.
+    if (finePointer) {
+      document.querySelectorAll<HTMLElement>(".a-gym").forEach((el) =>
+        createDraggable(el, {
+          container: ".a-hero",
+          releaseEase: createSpring({ stiffness: 90, damping: 8 }),
+        }),
+      );
+      const layer = createAnimatable(".a-gear-layer", { x: 900, y: 900, ease: "outQuad" });
+      const hero = document.querySelector<HTMLElement>(".a-hero")!;
+      hero.addEventListener("pointermove", (e) => {
+        const r = hero.getBoundingClientRect();
+        layer.x?.(((e.clientX - r.left) / r.width - 0.5) * -28);
+        layer.y?.(((e.clientY - r.top) / r.height - 0.5) * -20);
+      });
+    }
+
+    // 5. Section titles and blocks reveal when they enter the screen.
+    const reveal = (el: Element, run: () => void) => {
+      const io = new IntersectionObserver(
+        ([e]) => {
+          if (e?.isIntersecting) {
+            run();
+            io.disconnect();
+          }
+        },
+        { threshold: 0.25 },
+      );
+      io.observe(el);
+    };
+    document.querySelectorAll<HTMLElement>(".a-split").forEach((h) => {
+      const { chars } = splitText(h, { chars: { class: "a-char" } });
+      utils.set(chars, { opacity: 0, y: "40%" });
+      reveal(h, () => animate(chars, { opacity: 1, y: "0%", duration: 900, delay: stagger(28), ease: "outExpo" }));
+    });
+    const steps = document.querySelectorAll(".a-steps li");
+    if (steps.length) {
+      utils.set(steps, { opacity: 0, y: 30 });
+      reveal(steps[0]!, () => animate(steps, { opacity: 1, y: 0, duration: 800, delay: stagger(110), ease: "outExpo" }));
+    }
+    const acc = document.querySelectorAll(".a-acc-item");
+    if (acc.length) {
+      utils.set(acc, { opacity: 0, y: 40 });
+      reveal(acc[0]!, () => animate(acc, { opacity: 1, y: 0, duration: 900, delay: stagger(120), ease: "outExpo" }));
+    }
+
+    // 6. Agenda: free slots snap in each time the live data renders.
+    document.addEventListener("agenda:data", () => {
+      animate(".la-free", { scale: [0.85, 1], opacity: [0, 1], duration: 600, delay: stagger(18), ease: "outBack(1.4)" });
+    });
+
+    // 7. Final word keeps breathing once revealed.
+    const final = document.querySelector(".a-final-word");
+    if (final) {
+      reveal(final, () => {
+        setTimeout(() => {
+          animate(final.querySelectorAll(".a-char"), { y: ["-2%", "2%"], duration: 2000, delay: stagger(140), loop: true, alternate: true, ease: "inOutSine" });
+        }, 1200);
+      });
+    }
+  }
+</script>
