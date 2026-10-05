@@ -1,0 +1,300 @@
+---
+// Routine editor: pick training days, title + place per day, exercises with sets/reps/load/rest/RIR.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import CoachShell from "@/layouts/CoachShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { getWorkoutPlan } from "@/lib/server/plans";
+
+const id = Astro.params.id!;
+const student = await env.DB.prepare(`SELECT id, full_name, modality, home_equipment FROM students WHERE id = ?1`).bind(id).first<{ id: string; full_name: string; modality: string; home_equipment: string }>();
+if (!student) return Astro.redirect("/coach/estudiantes");
+const [plan, exercises] = await Promise.all([
+  getWorkoutPlan(env.DB, id),
+  env.DB.prepare(`SELECT id, name, muscle_group, equipment, modality FROM exercises ORDER BY muscle_group, name`).all<{ id: string; name: string; muscle_group: string; equipment: string; modality: string }>(),
+]);
+const initial = plan
+  ? {
+      name: plan.name,
+      notes: plan.notes ?? "",
+      days: plan.days.map((d) => ({
+        weekday: d.weekday,
+        title: d.title,
+        location: d.location,
+        items: d.items.map((i) => ({ exercise_id: i.exercise_id, sets: i.sets, reps: i.reps, load_kg: i.load_kg ?? "", rest_s: i.rest_s ?? "", rir: i.rir ?? "", notes: i.notes ?? "" })),
+      })),
+    }
+  : { name: `Rutina de ${student.full_name.split(" ")[0]}`, notes: "", days: [] };
+const equipment: string[] = JSON.parse(student.home_equipment ?? "[]");
+---
+
+<CoachShell title={`Rutina · ${student.full_name}`} section="estudiantes">
+  <a href={`/coach/estudiantes/${id}?tab=rutina`} class="c-muted text-sm" style="text-decoration:none">← {student.full_name}</a>
+  <div class="c-row">
+    <h1 class="c-h1">Rutina</h1>
+    <span class="c-tag">{plan ? "Editando la rutina publicada (se guarda como nueva versión)" : "Nueva rutina"}</span>
+  </div>
+
+  <section class="c-card head">
+    <Bladimir state="lift" size={70} />
+    <div class="grid gap-3">
+      <div class="c-grid-2">
+        <label class="c-field"><span>Nombre de la rutina</span><input id="r-name" /></label>
+        <label class="c-field"><span>Indicaciones generales</span><input id="r-notes" placeholder="Ej: calienta 5 minutos antes" /></label>
+      </div>
+      <p class="c-muted text-sm">Equipo en casa: {equipment.length ? equipment.join(", ").replaceAll("_", " ") : "no registrado"}.</p>
+    </div>
+  </section>
+
+  <section class="c-card">
+    <h2 class="c-h2">Días de entreno</h2>
+    <div class="wd" id="wd" role="group" aria-label="Días de entreno">
+      {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((l, i) => <button type="button" data-wd={(i + 1) % 7} aria-pressed="false">{l}</button>)}
+    </div>
+  </section>
+
+  <div id="days" class="grid gap-4"></div>
+
+  <section class="c-card save">
+    <p class="c-err" id="err" role="alert"></p>
+    <div class="c-row">
+      <p class="c-muted text-sm">Al guardar, el estudiante ve la nueva rutina de inmediato.</p>
+      <button class="c-btn" id="save"><Icon name="check" size={18} /> Publicar rutina</button>
+    </div>
+  </section>
+
+  <template id="ex-data" set:html={JSON.stringify(exercises.results)} />
+  <template id="init-data" set:html={JSON.stringify(initial)} />
+</CoachShell>
+
+<style>
+  .head {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+  .wd {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .wd button {
+    min-height: 46px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .wd button[aria-pressed="true"] {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: #0d0d0d;
+  }
+  :global(.day-card) {
+    display: grid;
+    gap: 12px;
+  }
+  :global(.day-top) {
+    display: grid;
+    grid-template-columns: auto 1fr 200px;
+    gap: 10px;
+    align-items: end;
+  }
+  :global(.day-badge) {
+    font: 400 2.2rem/1 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+    color: var(--lime);
+  }
+  @media (max-width: 700px) {
+    :global(.day-top) {
+      grid-template-columns: 1fr;
+    }
+  }
+  :global(.ex-row) {
+    display: grid;
+    grid-template-columns: 28px minmax(180px, 2.4fr) 70px 110px 90px 90px 70px minmax(120px, 1.4fr) auto;
+    gap: 8px;
+    align-items: end;
+    padding: 10px;
+    border-radius: 14px;
+    background: var(--card2);
+  }
+  :global(.ex-row .n) {
+    align-self: center;
+    color: var(--lime);
+    font: 400 1.5rem/1 var(--disp);
+  }
+  :global(.ex-row label) {
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--mute);
+  }
+  :global(.ex-row input),
+  :global(.ex-row select) {
+    min-height: 40px;
+    padding: 0 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--fg);
+    font: 500 14px/1 var(--font-sans);
+    color-scheme: dark;
+    width: 100%;
+  }
+  :global(.ex-tools) {
+    display: flex;
+    gap: 4px;
+  }
+  :global(.ex-tools button) {
+    width: 36px;
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  @media (max-width: 1100px) {
+    :global(.ex-row) {
+      grid-template-columns: 28px 1fr 1fr 1fr;
+    }
+    :global(.ex-row .exsel),
+    :global(.ex-row .notes) {
+      grid-column: 2 / -1;
+    }
+  }
+  .save {
+    position: sticky;
+    bottom: 12px;
+    z-index: 10;
+    border-color: var(--lime);
+  }
+  @media (max-width: 860px) {
+    .save {
+      bottom: 84px;
+    }
+  }
+</style>
+
+<script>
+  type Ex = { id: string; name: string; muscle_group: string; equipment: string; modality: string };
+  type Item = { exercise_id: string; sets: number | string; reps: string; load_kg: number | string; rest_s: number | string; rir: number | string; notes: string };
+  type Day = { weekday: number; title: string; location: "casa" | "gym"; items: Item[] };
+  const EX: Ex[] = JSON.parse(document.getElementById("ex-data")!.innerHTML);
+  const state: { name: string; notes: string; days: Day[] } = JSON.parse(document.getElementById("init-data")!.innerHTML);
+  const NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+  const order = (wd: number) => (wd + 6) % 7;
+  const nameIn = document.getElementById("r-name") as unknown as HTMLInputElement;
+  const notesIn = document.getElementById("r-notes") as unknown as HTMLInputElement;
+  nameIn.value = state.name;
+  notesIn.value = state.notes;
+  nameIn.addEventListener("input", () => (state.name = nameIn.value));
+  notesIn.addEventListener("input", () => (state.notes = notesIn.value));
+  const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const blank = (): Item => ({ exercise_id: "", sets: 3, reps: "10-12", load_kg: "", rest_s: 60, rir: 2, notes: "" });
+
+  const exOptions = (loc: string, sel: string) => {
+    const groups = new Map<string, Ex[]>();
+    for (const e of EX.filter((e) => e.modality === "ambos" || e.modality === loc || e.id === sel)) groups.set(e.muscle_group, [...(groups.get(e.muscle_group) ?? []), e]);
+    return `<option value="">Elige ejercicio</option>` + [...groups].map(([g, list]) => `<optgroup label="${esc(g)}">${list.map((e) => `<option value="${e.id}" ${e.id === sel ? "selected" : ""}>${esc(e.name)}</option>`).join("")}</optgroup>`).join("");
+  };
+
+  const daysEl = document.getElementById("days")!;
+  function render() {
+    state.days.sort((a, b) => order(a.weekday) - order(b.weekday));
+    document.querySelectorAll<HTMLButtonElement>("#wd button").forEach((b) => b.setAttribute("aria-pressed", String(state.days.some((d) => d.weekday === Number(b.dataset.wd)))));
+    daysEl.innerHTML = state.days
+      .map(
+        (d, di) => `
+      <section class="c-card day-card" data-di="${di}">
+        <div class="day-top">
+          <span class="day-badge">${NAMES[d.weekday]}</span>
+          <label class="c-field"><span>Título del día</span><input data-k="title" value="${esc(d.title)}" placeholder="Ej: Pierna y glúteo" /></label>
+          <label class="c-field"><span>Dónde</span><select data-k="location"><option value="gym" ${d.location === "gym" ? "selected" : ""}>Gimnasio</option><option value="casa" ${d.location === "casa" ? "selected" : ""}>En casa</option></select></label>
+        </div>
+        ${d.items
+          .map(
+            (it, ii) => `
+          <div class="ex-row" data-ii="${ii}">
+            <span class="n">${ii + 1}</span>
+            <label class="exsel">Ejercicio<select data-f="exercise_id">${exOptions(d.location, it.exercise_id)}</select></label>
+            <label>Series<input data-f="sets" type="number" min="1" max="10" value="${it.sets}" /></label>
+            <label>Reps<input data-f="reps" value="${esc(String(it.reps))}" /></label>
+            <label>Carga kg<input data-f="load_kg" type="number" step="0.5" min="0" value="${it.load_kg}" /></label>
+            <label>Descanso s<input data-f="rest_s" type="number" step="15" min="0" value="${it.rest_s}" /></label>
+            <label>RIR<input data-f="rir" type="number" min="0" max="6" value="${it.rir}" /></label>
+            <label class="notes">Nota<input data-f="notes" value="${esc(it.notes)}" /></label>
+            <div class="ex-tools">
+              <button type="button" data-mv="-1" aria-label="Subir">↑</button>
+              <button type="button" data-mv="1" aria-label="Bajar">↓</button>
+              <button type="button" data-rm aria-label="Quitar">×</button>
+            </div>
+          </div>`,
+          )
+          .join("")}
+        <button type="button" class="c-btn c-btn-ghost" data-add style="justify-self:start">+ Agregar ejercicio</button>
+      </section>`,
+      )
+      .join("");
+    if (!state.days.length) daysEl.innerHTML = `<p class="c-muted">Elige los días de entreno arriba.</p>`;
+  }
+
+  document.querySelectorAll<HTMLButtonElement>("#wd button").forEach((b) =>
+    b.addEventListener("click", () => {
+      const wd = Number(b.dataset.wd);
+      const i = state.days.findIndex((d) => d.weekday === wd);
+      if (i >= 0) state.days.splice(i, 1);
+      else state.days.push({ weekday: wd, title: "", location: "gym", items: [blank()] });
+      render();
+    }),
+  );
+
+  daysEl.addEventListener("input", (e) => {
+    const t = e.target as HTMLInputElement;
+    const card = t.closest<HTMLElement>("[data-di]");
+    if (!card) return;
+    const day = state.days[Number(card.dataset.di)]!;
+    if (t.dataset.k) {
+      (day as unknown as Record<string, unknown>)[t.dataset.k] = t.value;
+      if (t.dataset.k === "location") render();
+      return;
+    }
+    const row = t.closest<HTMLElement>("[data-ii]");
+    if (row && t.dataset.f) (day.items[Number(row.dataset.ii)] as unknown as Record<string, unknown>)[t.dataset.f] = t.value;
+  });
+  daysEl.addEventListener("click", (e) => {
+    const t = (e.target as HTMLElement).closest("button");
+    const card = t?.closest<HTMLElement>("[data-di]");
+    if (!t || !card) return;
+    const day = state.days[Number(card.dataset.di)]!;
+    const row = t.closest<HTMLElement>("[data-ii]");
+    const ii = row ? Number(row.dataset.ii) : -1;
+    if (t.hasAttribute("data-add")) day.items.push(blank());
+    else if (t.hasAttribute("data-rm")) day.items.splice(ii, 1);
+    else if (t.dataset.mv) {
+      const j = ii + Number(t.dataset.mv);
+      if (j >= 0 && j < day.items.length) [day.items[ii], day.items[j]] = [day.items[j]!, day.items[ii]!];
+    } else return;
+    render();
+  });
+
+  const err = document.getElementById("err")!;
+  document.getElementById("save")!.addEventListener("click", async () => {
+    err.textContent = "";
+    const studentId = location.pathname.split("/")[3];
+    const empty = state.days.flatMap((d) => d.items.filter((i) => !i.exercise_id));
+    if (empty.length) {
+      err.textContent = "Hay ejercicios sin elegir. Elígelos o quítalos.";
+      return;
+    }
+    const res = await fetch("/api/coach/workouts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ student_id: studentId, ...state }) }).catch(() => null);
+    const data = res ? ((await res.json()) as { ok: boolean; errors?: Record<string, string> }) : { ok: false, errors: { form: "Sin conexión." } };
+    if (data.ok) location.assign(`/coach/estudiantes/${studentId}?tab=rutina`);
+    else err.textContent = Object.values(data.errors ?? {})[0] ?? "No se pudo guardar.";
+  });
+  render();
+</script>

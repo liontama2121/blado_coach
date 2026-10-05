@@ -67,8 +67,8 @@ INSERT INTO availability (id, weekday, start_minute, end_minute, location) VALUE
 
 -- Bogotá is UTC-5: 06:00 local = 11:00Z.
 INSERT INTO training_sessions (id, student_id, starts_at, ends_at, location, travel_before_min, travel_after_min, status, requested_by) VALUES
-  ('ts-mv-1', 's-mariana', '2026-10-05T11:00:00Z', '2026-10-05T11:50:00Z', 'casa', 30, 30, 'confirmada', 'u-student-mv'),
-  ('ts-ar-1', 's-andres',  '2026-10-05T22:00:00Z', '2026-10-05T23:00:00Z', 'gym',  0,  0,  'solicitada', 'u-student-ar');
+  ('ts-mv-1', 's-mariana', '2026-10-05T11:00:00.000Z', '2026-10-05T11:50:00.000Z', 'casa', 30, 30, 'confirmada', 'u-student-mv'),
+  ('ts-ar-1', 's-andres',  '2026-10-05T22:00:00.000Z', '2026-10-05T23:00:00.000Z', 'gym',  0,  0,  'solicitada', 'u-student-ar');
 
 INSERT INTO coach_notes (id, student_id, body) VALUES
   ('cn-ar-1', 's-andres', 'PAR-Q con un sí (pregunta 4). Pedir autorización médica antes de subir cargas en peso muerto.');

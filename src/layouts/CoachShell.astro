@@ -1,0 +1,358 @@
+---
+/**
+ * Coach panel shell: same visual world as the landing and the student app
+ * (graphite, lime, elongated display type, Bladimir), tuned for work:
+ * Taste dials VARIANCE 6 / MOTION 3 / DENSITY 6.
+ * Desktop: left rail. Phone: bottom tabs.
+ */
+import "@fontsource-variable/league-gothic/wdth";
+import Base from "@/layouts/Base.astro";
+import Icon, { type IconName } from "@/components/Icon.astro";
+
+interface Props {
+  title: string;
+  section: "inicio" | "estudiantes" | "sesiones";
+}
+const { title, section } = Astro.props;
+const nav: { id: Props["section"]; href: string; label: string; icon: IconName }[] = [
+  { id: "inicio", href: "/coach", label: "Inicio", icon: "house" },
+  { id: "estudiantes", href: "/coach/estudiantes", label: "Estudiantes", icon: "user" },
+  { id: "sesiones", href: "/coach/sesiones", label: "Sesiones", icon: "calendar" },
+];
+---
+
+<Base title={`${title} · Coach · Blado`} noindex>
+  <div class="cs">
+    <aside class="cs-rail" aria-label="Panel del coach">
+      <a href="/coach" class="cs-logo">Blado<span>coach</span></a>
+      <nav class="cs-nav">
+        {
+          nav.map((n) => (
+            <a href={n.href} aria-current={n.id === section ? "page" : undefined}>
+              <Icon name={n.icon} size={20} />
+              <span>{n.label}</span>
+            </a>
+          ))
+        }
+      </nav>
+      <form action="/api/auth/logout" method="post" class="cs-out-form">
+        <button class="cs-out"><Icon name="logout" size={18} /> <span>Salir</span></button>
+      </form>
+    </aside>
+    <main class="cs-main">
+      <slot />
+    </main>
+  </div>
+</Base>
+
+<style is:global>
+  .cs {
+    --lime: #c6ff00;
+    --bg: #0d0d0d;
+    --card: #161715;
+    --card2: #1d1f1c;
+    --fg: #f1f1ec;
+    --mute: #a3a59e;
+    --line: #2a2d2a;
+    --err: #ff7a5c;
+    --warn: #ffd166;
+    --bl-bg: var(--card);
+    --disp: "League Gothic Variable", "Arial Narrow", sans-serif;
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .cs :focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 3px;
+  }
+  .cs-rail {
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding: 22px 16px;
+    border-right: 1px solid var(--line);
+  }
+  .cs-logo {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding-left: 8px;
+    font: 400 34px/1 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+    color: var(--lime);
+    text-decoration: none;
+  }
+  .cs-logo span {
+    font-size: 18px;
+    color: var(--mute);
+  }
+  .cs-nav {
+    display: grid;
+    gap: 4px;
+  }
+  .cs-nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 14px;
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: none;
+  }
+  .cs-nav a:hover {
+    color: var(--fg);
+    background: var(--card);
+  }
+  .cs-nav a[aria-current="page"] {
+    color: #0d0d0d;
+    background: var(--lime);
+  }
+  .cs-out-form {
+    margin-top: auto;
+  }
+  .cs-out {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .cs-main {
+    min-width: 0;
+    width: 100%;
+    max-width: 1240px;
+    padding: 28px clamp(16px, 3vw, 40px) 64px;
+    display: grid;
+    align-content: start;
+    gap: 18px;
+  }
+  @media (max-width: 860px) {
+    .cs {
+      grid-template-columns: 1fr;
+    }
+    .cs-rail {
+      position: fixed;
+      inset: auto 0 0 0;
+      top: auto;
+      height: auto;
+      z-index: 40;
+      flex-direction: row;
+      align-items: center;
+      gap: 0;
+      padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
+      border-right: 0;
+      border-top: 1px solid var(--line);
+      background: #111210;
+    }
+    .cs-logo {
+      display: none;
+    }
+    .cs-nav {
+      flex: 1;
+      grid-auto-flow: column;
+    }
+    .cs-nav a {
+      flex-direction: column;
+      gap: 3px;
+      padding: 8px 4px;
+      font-size: 11px;
+    }
+    .cs-out-form {
+      margin: 0;
+    }
+    .cs-out {
+      flex-direction: column;
+      gap: 3px;
+      border: 0;
+      padding: 8px 10px;
+      font-size: 11px;
+    }
+    .cs-main {
+      padding-bottom: 110px;
+    }
+  }
+
+  /* shared panel pieces */
+  .c-h1 {
+    margin: 0;
+    font: 400 clamp(2.8rem, 6vw, 4.4rem) / 0.88 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+  }
+  .c-h2 {
+    margin: 0;
+    font: 400 1.9rem/0.95 var(--disp);
+    font-variation-settings: "wdth" 75;
+    text-transform: uppercase;
+  }
+  .c-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 18px;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+  }
+  .c-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .c-muted {
+    color: var(--mute);
+  }
+  .c-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--lime);
+    color: #0d0d0d;
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .c-btn:disabled {
+    opacity: 0.55;
+    cursor: wait;
+  }
+  .c-btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--line);
+  }
+  .c-btn-danger {
+    background: transparent;
+    color: var(--err);
+    border: 1px solid var(--err);
+  }
+  .c-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--card2);
+    font: 600 12px/1.2 var(--font-sans);
+    white-space: nowrap;
+  }
+  .c-tag-ok {
+    background: rgba(198, 255, 0, 0.14);
+    color: var(--lime);
+  }
+  .c-tag-warn {
+    background: rgba(255, 209, 102, 0.14);
+    color: var(--warn);
+  }
+  .c-tag-err {
+    background: rgba(255, 122, 92, 0.16);
+    color: var(--err);
+  }
+  .c-field {
+    display: grid;
+    gap: 6px;
+    font: 500 14px/1.3 var(--font-sans);
+  }
+  .c-input,
+  .c-field input,
+  .c-field select,
+  .c-field textarea {
+    width: 100%;
+    min-height: 46px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--card2);
+    color: var(--fg);
+    font: 500 15px/1.3 var(--font-sans);
+    color-scheme: dark;
+  }
+  .c-field textarea {
+    padding: 12px 14px;
+    min-height: 90px;
+  }
+  .c-field input:focus,
+  .c-field select:focus,
+  .c-field textarea:focus,
+  .c-input:focus {
+    outline: none;
+    border-color: var(--lime);
+  }
+  .c-field [aria-invalid="true"] {
+    border-color: var(--err);
+  }
+  .c-err {
+    min-height: 1em;
+    margin: 0;
+    color: var(--err);
+    font-size: 13px;
+  }
+  .c-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .c-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 700px) {
+    .c-grid-2,
+    .c-grid-3 {
+      grid-template-columns: 1fr;
+    }
+  }
+  .c-table-wrap {
+    overflow-x: auto;
+  }
+  .c-table {
+    width: 100%;
+    min-width: 640px;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .c-table th,
+  .c-table td {
+    text-align: left;
+    padding: 12px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .c-table th {
+    color: var(--mute);
+    font-weight: 500;
+  }
+  .c-table tbody tr:hover {
+    background: var(--card2);
+  }
+  .c-table a {
+    color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .c-table a:hover {
+    color: var(--lime);
+  }
+</style>

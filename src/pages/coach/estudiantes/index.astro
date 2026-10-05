@@ -1,0 +1,125 @@
+---
+// Students: search + filters (status, modality, goal, alerts). Cards on phones, table on desktop.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import CoachShell from "@/layouts/CoachShell.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { MODALITY_LABEL, STATUS_LABEL, alertsFor, listStudents } from "@/lib/server/coach";
+import { GOAL_LABEL } from "@/lib/server/student";
+
+const students = await listStudents(env.DB);
+const rows = students.map((s) => ({ ...s, alerts: alertsFor(s) }));
+---
+
+<CoachShell title="Estudiantes" section="estudiantes">
+  <div class="c-row">
+    <h1 class="c-h1">Estudiantes</h1>
+    <a href="/coach/estudiantes/nuevo" class="c-btn"><Icon name="plus" size={18} /> Nuevo estudiante</a>
+  </div>
+
+  <section class="c-card filters" aria-label="Buscar y filtrar">
+    <label class="c-field search"><span class="sr-only">Buscar</span><input type="search" id="q" placeholder="Buscar por nombre, correo o teléfono" /></label>
+    <label class="c-field"><span>Estado</span>
+      <select id="f-status"><option value="">Todos</option>{Object.entries(STATUS_LABEL).map(([v, l]) => <option value={v} selected={v === "activo"}>{l}</option>)}</select>
+    </label>
+    <label class="c-field"><span>Modalidad</span>
+      <select id="f-mod"><option value="">Todas</option>{Object.entries(MODALITY_LABEL).map(([v, l]) => <option value={v}>{l}</option>)}</select>
+    </label>
+    <label class="c-field"><span>Objetivo</span>
+      <select id="f-goal"><option value="">Todos</option>{Object.entries(GOAL_LABEL).map(([v, l]) => <option value={v}>{l}</option>)}</select>
+    </label>
+    <label class="check"><input type="checkbox" id="f-alert" /> Solo con alertas</label>
+  </section>
+
+  <section class="c-card">
+    <p class="c-muted text-sm" id="count"></p>
+    <div class="c-table-wrap">
+      <table class="c-table">
+        <thead><tr><th>Estudiante</th><th>Modalidad</th><th>Objetivo</th><th>Estado</th><th>Última medición</th><th>Alertas</th></tr></thead>
+        <tbody>
+          {
+            rows.map((s) => (
+              <tr
+                data-row
+                data-text={`${s.full_name} ${s.email ?? ""} ${s.phone ?? ""}`.toLowerCase()}
+                data-status={s.status}
+                data-mod={s.modality}
+                data-goal={s.goal_type}
+                data-alert={s.alerts.length ? "1" : "0"}
+              >
+                <td>
+                  <a href={`/coach/estudiantes/${s.id}`}>{s.full_name}</a>
+                  {s.severe_allergy > 0 && <span class="c-tag c-tag-err" style="margin-left:6px">Alergia grave</span>}
+                  <div class="c-muted text-xs">{s.email}</div>
+                </td>
+                <td>{MODALITY_LABEL[s.modality]}</td>
+                <td>{GOAL_LABEL[s.goal_type]}</td>
+                <td><span class:list={["c-tag", s.status === "activo" && "c-tag-ok"]}>{STATUS_LABEL[s.status]}</span></td>
+                <td>{s.last_measure ? formatDate(s.last_measure) : "-"}</td>
+                <td>{s.alerts.length ? <span class="c-tag c-tag-warn" title={s.alerts.join(" · ")}>{s.alerts.length}</span> : <span class="c-muted">-</span>}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="c-muted" id="empty" hidden>Ningún estudiante coincide con la búsqueda.</p>
+  </section>
+</CoachShell>
+
+<style>
+  .filters {
+    grid-template-columns: 2fr 1fr 1fr 1fr auto;
+    align-items: end;
+  }
+  @media (max-width: 900px) {
+    .filters {
+      grid-template-columns: 1fr 1fr;
+    }
+    .filters .search {
+      grid-column: 1 / -1;
+    }
+  }
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 46px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .check input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--lime);
+  }
+</style>
+
+<script>
+  const $ = <T,>(id: string) => document.getElementById(id) as unknown as T;
+  const q = $<HTMLInputElement>("q"),
+    st = $<HTMLSelectElement>("f-status"),
+    mod = $<HTMLSelectElement>("f-mod"),
+    goal = $<HTMLSelectElement>("f-goal"),
+    al = $<HTMLInputElement>("f-alert");
+  const rows = [...document.querySelectorAll<HTMLTableRowElement>("[data-row]")];
+  const apply = () => {
+    const text = q.value.trim().toLowerCase();
+    let n = 0;
+    for (const r of rows) {
+      const show =
+        (!text || r.dataset.text!.includes(text)) &&
+        (!st.value || r.dataset.status === st.value) &&
+        (!mod.value || r.dataset.mod === mod.value) &&
+        (!goal.value || r.dataset.goal === goal.value) &&
+        (!al.checked || r.dataset.alert === "1");
+      r.hidden = !show;
+      if (show) n++;
+    }
+    $<HTMLElement>("count").textContent = `${n} de ${rows.length} estudiantes`;
+    $<HTMLElement>("empty").hidden = n > 0;
+  };
+  [q, st, mod, goal, al].forEach((el) => el.addEventListener("input", apply));
+  apply();
+</script>

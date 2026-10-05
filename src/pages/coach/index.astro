@@ -1,239 +1,153 @@
 ---
-// Coach panel, first slice: students at a glance + session requests to approve.
-// Taste dials for the panel: VARIANCE 6 / MOTION 3 / DENSITY 6.
+// Coach dashboard: KPIs, prioritized alerts, today, pending proposals.
 export const prerender = false;
 import { env } from "cloudflare:workers";
-import "@fontsource-variable/league-gothic/wdth";
-import Base from "@/layouts/Base.astro";
+import CoachShell from "@/layouts/CoachShell.astro";
 import Bladimir from "@/components/mascota/Bladimir.astro";
 import Icon from "@/components/Icon.astro";
 import { formatDate } from "@/config/site";
-import { addDays, bogotaParts, formatMinute } from "@/lib/schedule";
+import { bogotaParts, formatMinute } from "@/lib/schedule";
+import { alertsFor, listStudents } from "@/lib/server/coach";
 
-const today = bogotaParts(new Date()).date;
-const tenDaysAgo = addDays(today, -10);
-
-const [students, requests, upcoming] = await Promise.all([
+const now = new Date();
+const { date: today, minute } = bogotaParts(now);
+const [students, pending, upcoming, adherence] = await Promise.all([
+  listStudents(env.DB),
+  env.DB.prepare(`SELECT COUNT(*) AS n FROM training_sessions WHERE status = 'solicitada' AND counter_starts_at IS NULL AND starts_at > ?1`).bind(now.toISOString()).first<{ n: number }>(),
   env.DB.prepare(
-    `SELECT s.id, s.full_name, s.modality, s.status, s.goal_type,
-            (SELECT MAX(measured_on) FROM measurements m WHERE m.student_id = s.id) AS last_measure,
-            (SELECT MAX(week_start) FROM weekly_checkins c WHERE c.student_id = s.id) AS last_checkin,
-            (SELECT requires_medical_clearance FROM health_screening h WHERE h.student_id = s.id) AS parq,
-            (SELECT medical_clearance_key FROM health_screening h WHERE h.student_id = s.id) AS clearance
-       FROM students s ORDER BY s.full_name`,
-  ).all<{ id: string; full_name: string; modality: string; status: string; goal_type: string; last_measure: string | null; last_checkin: string | null; parq: number | null; clearance: string | null }>(),
-  env.DB.prepare(
-    `SELECT t.id, t.starts_at, t.location, s.full_name FROM training_sessions t JOIN students s ON s.id = t.student_id
-      WHERE t.status = 'solicitada' AND t.starts_at > ?1 ORDER BY t.starts_at`,
+    `SELECT t.starts_at, t.location, t.meet_url, s.full_name, s.id AS sid FROM training_sessions t JOIN students s ON s.id = t.student_id
+      WHERE t.status = 'confirmada' AND t.ends_at > ?1 ORDER BY t.starts_at LIMIT 6`,
   )
-    .bind(new Date().toISOString())
-    .all<{ id: string; starts_at: string; location: string; full_name: string }>(),
-  env.DB.prepare(
-    `SELECT t.starts_at, t.location, s.full_name FROM training_sessions t JOIN students s ON s.id = t.student_id
-      WHERE t.status = 'confirmada' AND t.starts_at > ?1 ORDER BY t.starts_at LIMIT 8`,
-  )
-    .bind(new Date().toISOString())
-    .all<{ starts_at: string; location: string; full_name: string }>(),
+    .bind(now.toISOString())
+    .all<{ starts_at: string; location: string; meet_url: string | null; full_name: string; sid: string }>(),
+  env.DB.prepare(`SELECT AVG(nutrition_adherence) AS food, AVG(CAST(sessions_done AS REAL) / NULLIF(sessions_planned, 0)) AS train FROM weekly_checkins WHERE week_start >= date(?1, '-14 day')`)
+    .bind(today)
+    .first<{ food: number | null; train: number | null }>(),
 ]);
-
-const alerts = students.results.flatMap((s) => {
-  const a: string[] = [];
-  if (!s.last_checkin || s.last_checkin < tenDaysAgo) a.push("Sin check-in en 10+ días");
-  if (s.last_measure && addDays(s.last_measure, 28) <= today) a.push("Medición vencida");
-  if (s.parq && !s.clearance) a.push("PAR-Q con sí, sin autorización médica");
-  return a.map((t) => ({ who: s.full_name, t }));
-});
+const active = students.filter((s) => s.status === "activo");
+const alerts = active.flatMap((s) => alertsFor(s, today).map((t) => ({ s, t })));
+const hello = minute < 720 ? "Buenos días" : minute < 1140 ? "Buenas tardes" : "Buenas noches";
 const when = (iso: string) => {
   const p = bogotaParts(new Date(iso));
-  return `${formatDate(p.date)} · ${formatMinute(p.minute)}`;
+  return `${p.date === today ? "Hoy" : formatDate(p.date)} · ${formatMinute(p.minute)}`;
 };
 ---
 
-<Base title="Panel del coach · Blado" noindex>
-  <div class="cp">
-    <header class="cp-top">
-      <a href="/coach" class="cp-logo">Blado <span>coach</span></a>
-      <form action="/api/auth/logout" method="post"><button class="cp-out"><Icon name="logout" size={18} /> Salir</button></form>
-    </header>
-    <main class="cp-main">
-      <section class="cp-kpis" aria-label="Resumen">
-        <div><b>{students.results.filter((s) => s.status === "activo").length}</b><span>Estudiantes activos</span></div>
-        <div><b>{requests.results.length}</b><span>Sesiones por aprobar</span></div>
-        <div><b>{alerts.length}</b><span>Alertas</span></div>
-      </section>
+<CoachShell title="Inicio" section="inicio">
+  <section class="c-card dash-hero">
+    <Bladimir state="wave" size={96} />
+    <div class="grid gap-2">
+      <h1 class="c-h1">{hello}, coach</h1>
+      <p class="c-muted">{pending?.n ? `Tienes ${pending.n} propuesta${pending.n > 1 ? "s" : ""} de horario por responder.` : "Todo al día con las sesiones."}</p>
+    </div>
+    <a href="/coach/estudiantes/nuevo" class="c-btn"><Icon name="plus" size={18} /> Nuevo estudiante</a>
+  </section>
 
-      <section class="cp-card" aria-labelledby="req-t">
-        <h2 id="req-t">Sesiones por aprobar</h2>
-        {
-          requests.results.length === 0 ? (
-            <div class="cp-empty"><Bladimir state="sleep" size={80} /><p>No hay solicitudes pendientes.</p></div>
-          ) : (
-            <ul class="cp-list">
-              {requests.results.map((r) => (
-                <li>
-                  <div><strong>{r.full_name}</strong><span>{when(r.starts_at)} · {r.location === "casa" ? "En casa" : "En gimnasio"}</span></div>
-                  <form action="/api/coach/sessions" method="post" class="cp-actions">
-                    <input type="hidden" name="id" value={r.id} />
-                    <button name="action" value="confirmar" class="cp-ok">Confirmar</button>
-                    <button name="action" value="rechazar" class="cp-no">Rechazar</button>
-                  </form>
-                </li>
-              ))}
-            </ul>
-          )
-        }
-      </section>
+  <section class="kpis" aria-label="Resumen">
+    <div class="c-card"><span class="c-muted">Estudiantes activos</span><b>{active.length}</b></div>
+    <a class="c-card" href="/coach/sesiones"><span class="c-muted">Propuestas por responder</span><b class:list={[pending?.n && "lime"]}>{pending?.n ?? 0}</b></a>
+    <div class="c-card"><span class="c-muted">Adherencia a entrenos (14 días)</span><b>{adherence?.train != null ? `${Math.round(adherence.train * 100)} %` : "-"}</b></div>
+    <div class="c-card"><span class="c-muted">Adherencia a la comida (14 días)</span><b>{adherence?.food != null ? `${Math.round(adherence.food * 10)} %` : "-"}</b></div>
+  </section>
 
-      <div class="cp-two">
-        <section class="cp-card" aria-labelledby="al-t">
-          <h2 id="al-t">Alertas</h2>
-          {alerts.length === 0 ? <p class="cp-muted">Todo al día.</p> : (
-            <ul class="cp-list">{alerts.map((a) => <li><strong>{a.who}</strong><span class="cp-warn">{a.t}</span></li>)}</ul>
-          )}
-        </section>
-        <section class="cp-card" aria-labelledby="up-t">
-          <h2 id="up-t">Próximas sesiones</h2>
-          {upcoming.results.length === 0 ? <p class="cp-muted">Sin sesiones confirmadas.</p> : (
-            <ul class="cp-list">{upcoming.results.map((u) => <li><strong>{u.full_name}</strong><span>{when(u.starts_at)} · {u.location === "casa" ? "Casa" : "Gym"}</span></li>)}</ul>
-          )}
-        </section>
-      </div>
-
-      <section class="cp-card" aria-labelledby="st-t">
-        <h2 id="st-t">Estudiantes</h2>
-        <div class="cp-table-wrap">
-          <table class="cp-table">
-            <thead><tr><th>Nombre</th><th>Modalidad</th><th>Estado</th><th>Última medición</th><th>Último check-in</th></tr></thead>
-            <tbody>
-              {students.results.map((s) => (
-                <tr>
-                  <td>{s.full_name}</td>
-                  <td>{s.modality}</td>
-                  <td>{s.status}</td>
-                  <td>{s.last_measure ? formatDate(s.last_measure) : "-"}</td>
-                  <td>{s.last_checkin ? formatDate(s.last_checkin) : "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <p class="cp-muted">Panel completo (perfil, mediciones, Bitácora, alimentación, mensajes) en las próximas fases.</p>
-    </main>
+  <div class="two">
+    <section class="c-card" aria-labelledby="al-t">
+      <div class="c-row"><h2 id="al-t" class="c-h2">Alertas</h2><span class="c-tag">{alerts.length}</span></div>
+      {
+        alerts.length === 0 ? (
+          <p class="c-muted">Nada pendiente. Buen trabajo.</p>
+        ) : (
+          <ul class="list">
+            {alerts.map((a) => (
+              <li>
+                <a href={`/coach/estudiantes/${a.s.id}`}>{a.s.full_name}</a>
+                <span class:list={["c-tag", a.t.startsWith("PAR-Q") ? "c-tag-err" : "c-tag-warn"]}>{a.t}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
+    <section class="c-card" aria-labelledby="up-t">
+      <div class="c-row"><h2 id="up-t" class="c-h2">Próximas sesiones</h2><a href="/coach/sesiones" class="c-tag">Ver todas</a></div>
+      {
+        upcoming.results.length === 0 ? (
+          <p class="c-muted">Sin sesiones confirmadas.</p>
+        ) : (
+          <ul class="list">
+            {upcoming.results.map((u) => (
+              <li>
+                <div class="grid">
+                  <a href={`/coach/estudiantes/${u.sid}`}>{u.full_name}</a>
+                  <span class="c-muted text-sm tnum">{when(u.starts_at)}</span>
+                </div>
+                {u.location === "casa" && u.meet_url ? (
+                  <a class="c-tag c-tag-ok" href={u.meet_url} target="_blank" rel="noopener">Meet</a>
+                ) : (
+                  <span class="c-tag">{u.location === "casa" ? "Virtual" : "Gimnasio"}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </section>
   </div>
-</Base>
+</CoachShell>
 
 <style>
-  .cp {
-    --lime: #c6ff00;
-    --bg: #f3f3f0;
-    --card: #fff;
-    --fg: #121412;
-    --mute: #5d625d;
-    --line: #dcddd8;
-    --bl-bg: #fff;
-    min-height: 100dvh;
-    background: var(--bg);
-    color: var(--fg);
-  }
-  .cp :global(.bladimir) {
-    color: #121412;
-  }
-  .cp-top {
-    display: flex;
+  .dash-hero {
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    justify-content: space-between;
-    height: 64px;
-    padding: 0 clamp(16px, 4vw, 40px);
-    background: #0d0d0d;
-    color: #f1f1ec;
   }
-  .cp-logo {
-    font: 400 30px/1 "League Gothic Variable", sans-serif;
-    font-variation-settings: "wdth" 75;
-    text-transform: uppercase;
-    color: var(--lime);
-    text-decoration: none;
+  @media (max-width: 700px) {
+    .dash-hero {
+      grid-template-columns: auto 1fr;
+    }
+    .dash-hero .c-btn {
+      grid-column: 1 / -1;
+    }
   }
-  .cp-logo span {
-    color: #a3a59e;
-    font-size: 20px;
-  }
-  .cp-out {
-    display: inline-flex;
-    gap: 6px;
-    align-items: center;
-    border: 1px solid #3a3d3a;
-    border-radius: 999px;
-    padding: 8px 14px;
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-  }
-  .cp-main {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 24px clamp(16px, 4vw, 40px) 48px;
+  .kpis {
     display: grid;
-    gap: 16px;
-  }
-  .cp-kpis {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
   }
-  .cp-kpis div {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 16px;
-    display: grid;
-    gap: 4px;
+  .kpis .c-card {
+    text-decoration: none;
+    color: inherit;
   }
-  .cp-kpis b {
-    font: 400 3rem/0.9 "League Gothic Variable", sans-serif;
+  .kpis b {
+    font: 400 3rem/0.9 var(--disp);
     font-variation-settings: "wdth" 75;
     font-variant-numeric: tabular-nums;
   }
-  .cp-kpis span,
-  .cp-muted {
-    color: var(--mute);
-    font-size: 14px;
+  .kpis b.lime {
+    color: var(--lime);
   }
-  .cp-card {
-    background: var(--card);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 18px;
-    display: grid;
-    gap: 12px;
-    min-width: 0;
+  @media (max-width: 900px) {
+    .kpis {
+      grid-template-columns: 1fr 1fr;
+    }
   }
-  .cp-card h2 {
-    margin: 0;
-    font: 400 1.9rem/1 "League Gothic Variable", sans-serif;
-    font-variation-settings: "wdth" 75;
-    text-transform: uppercase;
-  }
-  .cp-two {
+  .two {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 18px;
   }
-  @media (max-width: 760px) {
-    .cp-two,
-    .cp-kpis {
+  @media (max-width: 900px) {
+    .two {
       grid-template-columns: 1fr;
     }
   }
-  .cp-list {
+  .list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     gap: 10px;
   }
-  .cp-list li {
+  .list li {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -242,67 +156,12 @@ const when = (iso: string) => {
     padding-bottom: 10px;
     border-bottom: 1px solid var(--line);
   }
-  .cp-list li div {
-    display: grid;
-    gap: 2px;
-  }
-  .cp-list span {
-    color: var(--mute);
-    font-size: 14px;
-  }
-  .cp-warn {
-    color: #b45309 !important;
-    font-weight: 600;
-  }
-  .cp-actions {
-    display: flex;
-    gap: 8px;
-  }
-  .cp-ok,
-  .cp-no {
-    border: 0;
-    border-radius: 999px;
-    padding: 9px 16px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .cp-ok {
-    background: #121412;
-    color: var(--lime);
-  }
-  .cp-no {
-    background: transparent;
-    border: 1px solid var(--line);
+  .list a {
     color: var(--fg);
+    font-weight: 600;
+    text-decoration: none;
   }
-  .cp-empty {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--mute);
-  }
-  .cp-table-wrap {
-    overflow-x: auto;
-  }
-  .cp-table {
-    width: 100%;
-    min-width: 560px;
-    border-collapse: collapse;
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-  }
-  .cp-table th,
-  .cp-table td {
-    text-align: left;
-    padding: 10px 8px;
-    border-bottom: 1px solid var(--line);
-  }
-  .cp-table th {
-    color: var(--mute);
-    font-weight: 500;
-  }
-  .cp :focus-visible {
-    outline: 2px solid #121412;
-    outline-offset: 2px;
+  .list a:hover {
+    color: var(--lime);
   }
 </style>

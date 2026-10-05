@@ -1,92 +1,112 @@
 ---
-// "Plan": my sessions + request a new one from the coach's free slots.
+// Agenda: propose a time (gym in person / home over Google Meet), answer coach counter-proposals, join Meet.
 export const prerender = false;
 import { env } from "cloudflare:workers";
 import AppShell from "@/layouts/AppShell.astro";
-import Bladimir from "@/components/mascota/Bladimir.astro";
-import { formatDate } from "@/config/site";
-import { bogotaParts, formatMinute } from "@/lib/schedule";
-import { loadWeek } from "@/lib/server/agenda";
-import { getSessions } from "@/lib/server/student";
 import PlanTabs from "@/components/app/PlanTabs.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { addDays, bogotaParts, formatMinute } from "@/lib/schedule";
+import { DURATIONS } from "@/lib/sessions";
+import { loadWeek } from "@/lib/server/agenda";
+import { getSessions, getStudent } from "@/lib/server/student";
 
 const studentId = Astro.locals.user!.studentId!;
 const now = new Date();
-const [sessions, week] = await Promise.all([getSessions(env.DB, studentId, now.toISOString()), loadWeek(env.DB, now)]);
+const [sessions, week, student] = await Promise.all([getSessions(env.DB, studentId, now.toISOString()), loadWeek(env.DB, now), getStudent(env.DB, studentId)]);
+const today = bogotaParts(now).date;
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const WHERE = { gym: "Gym", casa: "Casa", ambos: "Casa o gym" } as const;
-const freeDays = week.days.filter((d) => d.slots.some((s) => s.state === "free"));
+const when = (iso: string) => {
+  const p = bogotaParts(new Date(iso));
+  return `${DAYS[new Date(`${p.date}T12:00:00Z`).getUTCDay()]} ${formatDate(p.date)} · ${formatMinute(p.minute)}`;
+};
+const picks = week.days.flatMap((d) => d.slots.filter((s) => s.state === "free").map((s) => ({ date: d.date, time: formatMinute(s.start), label: `${d.date === today ? "Hoy" : DAYS[d.weekday]} ${formatMinute(s.start)}` }))).slice(0, 10);
 ---
 
 <AppShell title="Agenda" tab="plan">
   <PlanTabs active="agenda" />
 
   <section class="card" aria-labelledby="ses-t">
-    <h2 id="ses-t" class="app-h2">Mis sesiones</h2>
+    <h1 id="ses-t" class="app-h2" style="font-size:2.4rem">Mis sesiones</h1>
     {
       sessions.length === 0 ? (
         <div class="row">
-          <p class="muted">Aún no tienes sesiones agendadas.</p>
-          <Bladimir state="lift" size={84} />
+          <p class="muted">Aún no tienes sesiones. Propón una abajo.</p>
+          <Bladimir state="point" size={72} />
         </div>
       ) : (
         <ul class="ses">
-          {sessions.map((s) => {
-            const p = bogotaParts(new Date(s.starts_at));
-            return (
-              <li class="row">
+          {sessions.map((s) => (
+            <li class="ses-item">
+              <div class="row">
                 <div>
-                  <strong class="tnum">{DAYS[new Date(`${p.date}T12:00:00Z`).getUTCDay()]} {formatDate(p.date)} · {formatMinute(p.minute)}</strong>
-                  <p class="muted text-sm">{s.location === "casa" ? "En casa" : "En gimnasio"}</p>
+                  <strong class="tnum">{when(s.starts_at)}</strong>
+                  <p class="muted text-sm">{s.location === "casa" ? "Virtual por Google Meet" : `Presencial en el gimnasio${student?.gym_name ? ` · ${student.gym_name}` : ""}`}</p>
                 </div>
-                <span class:list={["tag", s.status === "confirmada" ? "tag-ok" : "tag-wait"]}>{s.status === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
-              </li>
-            );
-          })}
+                <span class:list={["tag", s.status === "confirmada" && "tag-ok", s.status === "solicitada" && "tag-wait"]}>
+                  {s.status === "confirmada" ? "Confirmada" : s.status === "rechazada" ? "No aceptada" : s.counter_starts_at ? "Cambio propuesto" : "Esperando al coach"}
+                </span>
+              </div>
+
+              {s.status === "solicitada" && s.counter_starts_at && (
+                <div class="counter">
+                  <p>El coach te propone: <strong class="tnum">{when(s.counter_starts_at)}</strong></p>
+                  {s.counter_note && <p class="muted text-sm">"{s.counter_note}"</p>}
+                  <div class="actions" data-id={s.id}>
+                    <button class="pill-btn" data-act="aceptar_cambio">Aceptar</button>
+                    <button class="pill-btn ghost-btn" data-act="rechazar_cambio">No me sirve</button>
+                  </div>
+                </div>
+              )}
+
+              {s.status === "confirmada" && s.location === "casa" && s.meet_url && (
+                <a class="pill-btn meet" href={s.meet_url} target="_blank" rel="noopener"><Icon name="arrowUpRight" size={18} /> Unirme a Google Meet</a>
+              )}
+              {s.status === "rechazada" && s.note_coach && <p class="muted text-sm">Coach: "{s.note_coach}"</p>}
+              {(s.status === "solicitada" || s.status === "confirmada") && (
+                <div class="actions" data-id={s.id}>
+                  <button class="link-btn" data-act="cancelar">Cancelar sesión</button>
+                </div>
+              )}
+            </li>
+          ))}
         </ul>
       )
     }
+    <p class="text-sm" style="color:var(--err)" data-ses-err role="alert"></p>
   </section>
 
   <section class="card" aria-labelledby="req-t">
     <div class="row">
-      <h2 id="req-t" class="app-h2">Pedir sesión</h2>
-      <Bladimir state="point" size={70} dir="left" />
+      <h2 id="req-t" class="app-h2" style="font-size:2.2rem">Proponer horario</h2>
+      <Bladimir state="think" size={64} />
     </div>
-    <p class="muted text-sm">Elige un horario libre y dónde quieres entrenar. El coach lo confirma.</p>
-    <form id="req-form" class="grid gap-4">
+    <p class="muted text-sm">Elige el día y la hora que te sirvan. El coach acepta o te propone otra.</p>
+    <form id="prop" class="grid gap-4" novalidate>
       <fieldset class="grid gap-2">
-        <legend class="mb-2 text-sm font-semibold">Dónde</legend>
+        <legend class="mb-2 text-sm font-semibold">¿Dónde?</legend>
         <div class="seg">
-          <label><input type="radio" name="location" value="casa" checked /><span>En casa</span></label>
-          <label><input type="radio" name="location" value="gym" /><span>En gimnasio</span></label>
+          <label><input type="radio" name="location" value="gym" checked /><span>Gimnasio<small>Presencial</small></span></label>
+          <label><input type="radio" name="location" value="casa" /><span>En casa<small>Virtual por Meet</small></span></label>
         </div>
       </fieldset>
-      <div class="days" role="radiogroup" aria-label="Horarios libres">
-        {
-          freeDays.length === 0 ? (
-            <p class="muted">No hay horarios libres esta semana. Escríbele al coach.</p>
-          ) : (
-            freeDays.map((d) => (
-              <div class="day">
-                <p class="day-h">{d.date === week.today ? "Hoy" : DAYS[d.weekday]} <span class="muted">{formatDate(d.date).slice(0, 5)}</span></p>
-                <div class="slots">
-                  {d.slots
-                    .filter((s) => s.state === "free")
-                    .map((s) => (
-                      <label class="slot" data-loc={s.location}>
-                        <input type="radio" name="slot" value={`${d.date}|${s.start}`} required />
-                        <span>{formatMinute(s.start)}<small>{WHERE[s.location]}</small></span>
-                      </label>
-                    ))}
-                </div>
-              </div>
-            ))
-          )
-        }
+      <div class="two">
+        <label class="fld"><span>Día</span><input type="date" name="date" min={today} max={addDays(today, 60)} value={addDays(today, 1)} required /></label>
+        <label class="fld"><span>Hora</span><input type="time" name="time" min="05:00" max="21:30" step="900" value="18:00" required /></label>
       </div>
-      <p class="text-sm" style="color:var(--err)" data-req-err role="alert"></p>
-      <button type="submit" class="pill-btn" data-req-btn>Pedir este horario</button>
+      <label class="fld"><span>Duración</span>
+        <select name="minutes">{DURATIONS.map((m) => <option value={m} selected={m === 60}>{m} minutos</option>)}</select>
+      </label>
+      {picks.length > 0 && (
+        <div class="grid gap-2">
+          <span class="text-sm muted">Horarios libres del coach (toca para usar):</span>
+          <div class="picks">{picks.map((p) => <button type="button" class="pick" data-date={p.date} data-time={p.time}>{p.label}</button>)}</div>
+        </div>
+      )}
+      <label class="fld"><span>Nota para el coach (opcional)</span><input type="text" name="note" maxlength="300" placeholder="Ej: prefiero pierna ese día" /></label>
+      <p class="text-sm" style="color:var(--err)" data-prop-err role="alert"></p>
+      <button class="pill-btn" type="submit">Enviar propuesta</button>
     </form>
   </section>
 </AppShell>
@@ -97,110 +117,155 @@ const freeDays = week.days.filter((d) => d.slots.some((s) => s.state === "free")
     margin: 0;
     padding: 0;
     display: grid;
-    gap: 12px;
+    gap: 14px;
   }
-  .ses li + li {
-    padding-top: 12px;
-    border-top: 1px solid var(--line);
+  .ses-item {
+    display: grid;
+    gap: 10px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .counter {
+    display: grid;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid var(--lime);
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .link-btn {
+    border: 0;
+    background: none;
+    color: var(--mute);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 0;
+  }
+  .meet {
+    justify-self: start;
   }
   .seg {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
-  .seg label span,
-  .slot span {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 6px;
-    min-height: 44px;
-    padding: 0 14px;
+  .seg span {
+    display: grid;
+    gap: 2px;
+    padding: 12px 14px;
     border: 1px solid var(--line);
-    border-radius: 999px;
+    border-radius: 16px;
     cursor: pointer;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
   }
-  .seg input,
-  .slot input {
+  .seg small {
+    font-weight: 500;
+    font-size: 12px;
+    opacity: 0.75;
+  }
+  .seg input {
     position: absolute;
     opacity: 0;
-    pointer-events: none;
   }
-  .seg input:checked + span,
-  .slot input:checked + span {
+  .seg input:checked + span {
     background: var(--lime);
     border-color: var(--lime);
     color: #0d0d0d;
   }
-  .seg input:focus-visible + span,
-  .slot input:focus-visible + span {
+  .seg input:focus-visible + span {
     outline: 2px solid var(--lime);
     outline-offset: 2px;
   }
-  .slot small {
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .fld {
+    display: grid;
+    gap: 6px;
     font-weight: 500;
-    font-size: 11px;
-    opacity: 0.7;
+    font-size: 14px;
   }
-  .slot[hidden] {
-    display: none;
+  .fld input,
+  .fld select {
+    width: 100%;
+    min-height: 50px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--card2);
+    color: var(--fg);
+    font: 500 16px/1 var(--font-sans);
+    color-scheme: dark;
   }
-  .days {
-    display: grid;
-    gap: 14px;
+  .fld input:focus,
+  .fld select:focus {
+    outline: none;
+    border-color: var(--lime);
   }
-  .day-h {
-    margin: 0 0 8px;
-    font-weight: 600;
+  .picks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
   }
-  .slots {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 8px;
+  .pick {
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--fg);
+    font: 600 13px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .pick:hover {
+    border-color: var(--lime);
+    color: var(--lime);
   }
 </style>
 
 <script>
-  const form = document.getElementById("req-form") as HTMLFormElement | null;
-  if (form) {
-    const err = form.querySelector<HTMLElement>("[data-req-err]")!;
-    const btn = form.querySelector<HTMLButtonElement>("[data-req-btn]")!;
-    // Only show slots that allow the chosen place.
-    const filter = () => {
-      const loc = (form.querySelector<HTMLInputElement>('input[name="location"]:checked')?.value ?? "casa") as string;
-      form.querySelectorAll<HTMLElement>(".slot").forEach((s) => {
-        const ok = s.dataset.loc === "ambos" || s.dataset.loc === loc;
-        s.hidden = !ok;
-        if (!ok) (s.querySelector("input") as HTMLInputElement).checked = false;
-      });
-    };
-    form.querySelectorAll('input[name="location"]').forEach((r) => r.addEventListener("change", filter));
-    filter();
+  const post = async (body: Record<string, unknown>) => {
+    const res = await fetch("/api/app/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    return res ? ((await res.json()) as { ok: boolean; error?: string }) : { ok: false, error: "Sin conexión." };
+  };
 
+  const sesErr = document.querySelector<HTMLElement>("[data-ses-err]");
+  document.querySelectorAll<HTMLElement>(".actions[data-id]").forEach((box) =>
+    box.querySelectorAll<HTMLButtonElement>("button[data-act]").forEach((b) =>
+      b.addEventListener("click", async () => {
+        b.disabled = true;
+        const r = await post({ action: b.dataset.act, id: box.dataset.id });
+        if (r.ok) location.reload();
+        else {
+          if (sesErr) sesErr.textContent = r.error ?? "No se pudo.";
+          b.disabled = false;
+        }
+      }),
+    ),
+  );
+
+  const form = document.getElementById("prop") as HTMLFormElement | null;
+  if (form) {
+    const err = form.querySelector<HTMLElement>("[data-prop-err]")!;
+    form.querySelectorAll<HTMLButtonElement>(".pick").forEach((p) =>
+      p.addEventListener("click", () => {
+        (form.elements.namedItem("date") as HTMLInputElement).value = p.dataset.date!;
+        (form.elements.namedItem("time") as HTMLInputElement).value = p.dataset.time!;
+      }),
+    );
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const fd = new FormData(form);
-      const slot = String(fd.get("slot") ?? "");
-      if (!slot) {
-        err.textContent = "Elige un horario.";
-        return;
-      }
-      const [date, start] = slot.split("|");
-      btn.disabled = true;
       err.textContent = "";
-      const res = await fetch("/api/app/sessions", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ date, start: Number(start), location: fd.get("location") }),
-      }).catch(() => null);
-      const data = res ? ((await res.json()) as { ok: boolean; error?: string }) : { ok: false, error: "Sin conexión." };
-      if (data.ok) location.reload();
-      else {
-        err.textContent = data.error ?? "No se pudo pedir la sesión.";
-        btn.disabled = false;
-      }
+      const fd = Object.fromEntries(new FormData(form));
+      const r = await post({ action: "proponer", ...fd });
+      if (r.ok) location.reload();
+      else err.textContent = r.error ?? "No se pudo enviar.";
     });
   }
 </script>

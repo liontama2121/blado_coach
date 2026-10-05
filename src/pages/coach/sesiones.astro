@@ -1,0 +1,217 @@
+---
+// Coach sessions: answer proposals (accept with Meet link for virtual ones / counter-propose / reject),
+// and close out confirmed sessions.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import CoachShell from "@/layouts/CoachShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { addDays, bogotaParts, formatMinute } from "@/lib/schedule";
+import { DURATIONS, calendarTemplateUrl } from "@/lib/sessions";
+
+const now = new Date();
+const today = bogotaParts(now).date;
+type Row = { id: string; starts_at: string; ends_at: string; location: "gym" | "casa"; status: string; note_student: string | null; meet_url: string | null; counter_starts_at: string | null; full_name: string; email: string | null; sid: string };
+const q = (where: string) =>
+  env.DB.prepare(
+    `SELECT t.id, t.starts_at, t.ends_at, t.location, t.status, t.note_student, t.meet_url, t.counter_starts_at, s.full_name, s.email, s.id AS sid
+       FROM training_sessions t JOIN students s ON s.id = t.student_id WHERE ${where} ORDER BY t.starts_at`,
+  );
+const [pending, confirmed, past] = await Promise.all([
+  q(`t.status = 'solicitada' AND t.ends_at > ?1`).bind(now.toISOString()).all<Row>(),
+  q(`t.status = 'confirmada' AND t.ends_at > ?1`).bind(now.toISOString()).all<Row>(),
+  q(`t.status = 'confirmada' AND t.ends_at <= ?1 AND t.ends_at > ?2`).bind(now.toISOString(), new Date(now.getTime() - 14 * 86_400_000).toISOString()).all<Row>(),
+]);
+const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const when = (iso: string) => {
+  const p = bogotaParts(new Date(iso));
+  return `${DAYS[new Date(`${p.date}T12:00:00Z`).getUTCDay()]} ${formatDate(p.date)} · ${formatMinute(p.minute)}`;
+};
+const mins = (r: Row) => Math.round((Date.parse(r.ends_at) - Date.parse(r.starts_at)) / 60000);
+const calUrl = (r: Row) =>
+  calendarTemplateUrl({ title: `Entreno Blado · ${r.full_name}`, startsAt: r.starts_at, endsAt: r.ends_at, details: "Sesión virtual. Agrega videollamada de Google Meet.", guest: r.email });
+---
+
+<CoachShell title="Sesiones" section="sesiones">
+  <h1 class="c-h1">Sesiones</h1>
+
+  <section class="c-card" aria-labelledby="p-t">
+    <div class="c-row"><h2 id="p-t" class="c-h2">Propuestas por responder</h2><span class="c-tag">{pending.results.length}</span></div>
+    {
+      pending.results.length === 0 ? (
+        <div class="c-row" style="justify-content:flex-start"><Bladimir state="sleep" size={72} /><p class="c-muted">No hay propuestas pendientes.</p></div>
+      ) : (
+        <ul class="props">
+          {pending.results.map((r) => (
+            <li class="prop" data-id={r.id} data-loc={r.location}>
+              <div class="c-row">
+                <div class="grid gap-1">
+                  <a class="name" href={`/coach/estudiantes/${r.sid}`}>{r.full_name}</a>
+                  <span class="tnum">{when(r.starts_at)} · {mins(r)} min</span>
+                </div>
+                <span class:list={["c-tag", r.location === "casa" ? "c-tag-ok" : ""]}>{r.location === "casa" ? "Virtual · Google Meet" : "Gimnasio · presencial"}</span>
+              </div>
+              {r.note_student && <p class="c-muted text-sm">"{r.note_student}"</p>}
+              {r.counter_starts_at ? (
+                <p class="c-tag c-tag-warn" style="justify-self:start">Le propusiste {when(r.counter_starts_at)}. Esperando respuesta.</p>
+              ) : (
+                <>
+                  {r.location === "casa" && (
+                    <div class="meet">
+                      <label class="c-field">
+                        <span>Enlace de Google Meet</span>
+                        <input type="url" name="meet_url" placeholder="https://meet.google.com/abc-defg-hij" inputmode="url" />
+                      </label>
+                      <div class="meet-help">
+                        <a class="c-btn c-btn-ghost" href="https://meet.google.com/new" target="_blank" rel="noopener"><Icon name="plus" size={16} /> Crear Meet</a>
+                        <a class="c-btn c-btn-ghost" href={calUrl(r)} target="_blank" rel="noopener"><Icon name="calendar" size={16} /> Agendar en Google Calendar</a>
+                      </div>
+                    </div>
+                  )}
+                  <div class="acts">
+                    <button class="c-btn" data-act="confirmar"><Icon name="check" size={16} /> Aceptar</button>
+                    <button class="c-btn c-btn-ghost" data-act="toggle-counter">Proponer otra hora</button>
+                    <button class="c-btn c-btn-danger" data-act="rechazar">Rechazar</button>
+                  </div>
+                  <form class="counter" hidden>
+                    <div class="c-grid-3">
+                      <label class="c-field"><span>Día</span><input type="date" name="date" min={today} max={addDays(today, 60)} value={bogotaParts(new Date(r.starts_at)).date} required /></label>
+                      <label class="c-field"><span>Hora</span><input type="time" name="time" min="05:00" max="21:30" step="900" required /></label>
+                      <label class="c-field"><span>Duración</span><select name="minutes">{DURATIONS.map((m) => <option value={m} selected={m === mins(r)}>{m} min</option>)}</select></label>
+                    </div>
+                    <label class="c-field"><span>Mensaje (opcional)</span><input type="text" name="note" maxlength="300" placeholder="Ej: ese día tengo cupo más temprano" /></label>
+                    <button class="c-btn" type="submit">Enviar propuesta</button>
+                  </form>
+                </>
+              )}
+              <p class="c-err" data-err></p>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </section>
+
+  <section class="c-card" aria-labelledby="c-t">
+    <div class="c-row"><h2 id="c-t" class="c-h2">Confirmadas</h2><span class="c-tag">{confirmed.results.length}</span></div>
+    {confirmed.results.length === 0 ? <p class="c-muted">Sin sesiones confirmadas.</p> : (
+      <ul class="props">
+        {confirmed.results.map((r) => (
+          <li class="prop" data-id={r.id}>
+            <div class="c-row">
+              <div class="grid gap-1">
+                <a class="name" href={`/coach/estudiantes/${r.sid}`}>{r.full_name}</a>
+                <span class="tnum">{when(r.starts_at)} · {mins(r)} min</span>
+              </div>
+              <div class="acts">
+                {r.location === "casa" && r.meet_url ? <a class="c-btn" href={r.meet_url} target="_blank" rel="noopener"><Icon name="arrowUpRight" size={16} /> Abrir Meet</a> : <span class="c-tag">Gimnasio</span>}
+                <button class="c-btn c-btn-ghost" data-act="cancelar">Cancelar</button>
+              </div>
+            </div>
+            <p class="c-err" data-err></p>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+
+  {past.results.length > 0 && (
+    <section class="c-card" aria-labelledby="h-t">
+      <h2 id="h-t" class="c-h2">¿Cómo les fue?</h2>
+      <p class="c-muted text-sm">Marca las sesiones que ya pasaron.</p>
+      <ul class="props">
+        {past.results.map((r) => (
+          <li class="prop" data-id={r.id}>
+            <div class="c-row">
+              <span><strong>{r.full_name}</strong> <span class="c-muted tnum">· {when(r.starts_at)}</span></span>
+              <div class="acts">
+                <button class="c-btn" data-act="completada">Completada</button>
+                <button class="c-btn c-btn-ghost" data-act="no_asistio">No asistió</button>
+              </div>
+            </div>
+            <p class="c-err" data-err></p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+</CoachShell>
+
+<style>
+  .props {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 14px;
+  }
+  .prop {
+    display: grid;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    background: var(--card2);
+  }
+  .name {
+    color: var(--fg);
+    font-weight: 700;
+    font-size: 16px;
+    text-decoration: none;
+  }
+  .name:hover {
+    color: var(--lime);
+  }
+  .acts,
+  .meet-help {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .meet {
+    display: grid;
+    gap: 8px;
+  }
+  .counter {
+    display: grid;
+    gap: 10px;
+  }
+</style>
+
+<script>
+  const post = async (body: Record<string, unknown>) => {
+    const res = await fetch("/api/coach/sessions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    return res ? ((await res.json()) as { ok: boolean; error?: string }) : { ok: false, error: "Sin conexión." };
+  };
+  document.querySelectorAll<HTMLElement>(".prop[data-id]").forEach((li) => {
+    const id = li.dataset.id!;
+    const err = li.querySelector<HTMLElement>("[data-err]")!;
+    const counter = li.querySelector<HTMLFormElement>("form.counter");
+    li.querySelectorAll<HTMLButtonElement>("button[data-act]").forEach((b) =>
+      b.addEventListener("click", async () => {
+        const act = b.dataset.act!;
+        if (act === "toggle-counter") {
+          if (counter) counter.hidden = !counter.hidden;
+          return;
+        }
+        const meet = li.querySelector<HTMLInputElement>('input[name="meet_url"]')?.value.trim();
+        b.disabled = true;
+        err.textContent = "";
+        const r = await post({ action: act, id, ...(meet ? { meet_url: meet } : {}) });
+        if (r.ok) location.reload();
+        else {
+          err.textContent = r.error ?? "No se pudo.";
+          b.disabled = false;
+        }
+      }),
+    );
+    counter?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fd = Object.fromEntries(new FormData(counter));
+      const meet = li.querySelector<HTMLInputElement>('input[name="meet_url"]')?.value.trim();
+      const r = await post({ action: "proponer", id, ...fd, ...(meet ? { meet_url: meet } : {}) });
+      if (r.ok) location.reload();
+      else err.textContent = r.error ?? "No se pudo.";
+    });
+  });
+</script>

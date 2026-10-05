@@ -35,7 +35,7 @@ const nextMeal = todayMeals.find((m) => !mealLogs.has(m.id));
 const hour = Math.floor(minute / 60);
 const hello = hour < 12 ? "Buenos días" : hour < 19 ? "Buenas tardes" : "Buenas noches";
 const first = (student?.full_name ?? "").split(" ")[0];
-const next = sessions[0];
+const next = sessions.find((s) => s.status !== "rechazada");
 const nextParts = next ? bogotaParts(new Date(next.starts_at)) : null;
 const last = measurements.at(-1);
 const due = nextMeasurementDue(last?.measured_on);
@@ -111,21 +111,21 @@ const greet = !checkin.done
   <section class="card" aria-labelledby="next-t">
     <div class="row">
       <h2 id="next-t" class="app-h2">Próxima sesión</h2>
-      <a href="/app/plan" class="tag">Agenda</a>
+      <a href="/app/plan/agenda" class="tag">Agenda</a>
     </div>
     {
       next && nextParts ? (
         <div class="row">
           <div>
             <p class="big-num">{formatMinute(nextParts.minute)}</p>
-            <p class="muted">{formatDate(nextParts.date)} · {next.location === "casa" ? "En casa" : "En gimnasio"}</p>
+            <p class="muted">{formatDate(nextParts.date)} · {next.location === "casa" ? "Virtual por Meet" : "Gimnasio, presencial"}</p>
           </div>
           <span class:list={["tag", next.status === "confirmada" ? "tag-ok" : "tag-wait"]}>{next.status === "confirmada" ? "Confirmada" : "Por confirmar"}</span>
         </div>
       ) : (
         <div class="row">
           <p class="muted">No tienes sesiones agendadas.</p>
-          <a href="/app/plan" class="pill-btn">Pedir sesión</a>
+          <a href="/app/plan/agenda" class="pill-btn">Proponer horario</a>
         </div>
       )
     }

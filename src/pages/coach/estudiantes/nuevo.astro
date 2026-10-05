@@ -1,0 +1,478 @@
+---
+// New student wizard: datos → salud (PAR-Q+) → alimentación y restricciones → objetivo y hábitos → primera medición → consentimientos.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import CoachShell from "@/layouts/CoachShell.astro";
+import Bladimir from "@/components/mascota/Bladimir.astro";
+import Icon from "@/components/Icon.astro";
+import { bogotaParts } from "@/lib/schedule";
+import { GOAL_LABEL } from "@/lib/server/student";
+import { EQUIPMENT, PARQ } from "@/lib/validation/student";
+
+const today = bogotaParts(new Date()).date;
+const [allergens, foods] = await Promise.all([
+  env.DB.prepare(`SELECT code, label FROM allergens ORDER BY label`).all<{ code: string; label: string }>(),
+  env.DB.prepare(`SELECT id, name FROM foods ORDER BY name`).all<{ id: string; name: string }>(),
+]);
+
+const TAGS = [
+  ["vegano", "Vegano"], ["vegetariano", "Vegetariano"], ["pescetariano", "Pescetariano"], ["sin_cerdo", "Sin cerdo"], ["sin_res", "Sin res"],
+  ["sin_lacteos", "Sin lácteos"], ["sin_lactosa", "Sin lactosa"], ["sin_picante", "Sin picante"], ["celiaquia", "Celiaquía"],
+];
+const EQ_LABEL: Record<string, string> = { mancuernas: "Mancuernas", bandas: "Bandas", barra_dominadas: "Barra de dominadas", kettlebell: "Kettlebell", banco: "Banco", ninguno: "Ninguno", otro: "Otro" };
+const steps = ["Datos", "Salud", "Alimentación", "Objetivo", "Medición", "Confirmar"];
+---
+
+<CoachShell title="Nuevo estudiante" section="estudiantes">
+  <div class="c-row">
+    <h1 class="c-h1">Nuevo estudiante</h1>
+    <a href="/coach/estudiantes" class="c-btn c-btn-ghost">Cancelar</a>
+  </div>
+
+  <section class="c-card wiz-head">
+    <Bladimir state="point" size={72} class="wiz-face" />
+    <div class="grid gap-3">
+      <p data-wiz-say>Empecemos con los datos básicos.</p>
+      <ol class="steps">{steps.map((s, i) => <li data-step-dot={i}><span>{i + 1}</span>{s}</li>)}</ol>
+    </div>
+  </section>
+
+  <form id="wiz" class="c-card" novalidate>
+    <!-- 1 DATOS -->
+    <fieldset data-step="0" class="grid gap-3">
+      <legend class="c-h2">Datos personales</legend>
+      <div class="c-grid-2">
+        <label class="c-field"><span>Nombre completo *</span><input name="datos.full_name" required autocomplete="off" /><p class="c-err" data-e="datos.full_name"></p></label>
+        <label class="c-field"><span>Correo (será su usuario) *</span><input name="datos.email" type="email" required /><p class="c-err" data-e="datos.email"></p></label>
+        <label class="c-field"><span>Fecha de nacimiento *</span><input name="datos.birth_date" type="date" max={today} required /><p class="c-err" data-e="datos.birth_date"></p></label>
+        <label class="c-field"><span>Sexo biológico * <small class="c-muted">(para fórmulas)</small></span><select name="datos.sex" required><option value="">Elige</option><option value="F">Femenino</option><option value="M">Masculino</option></select><p class="c-err" data-e="datos.sex"></p></label>
+        <label class="c-field"><span>Teléfono / WhatsApp</span><input name="datos.phone" type="tel" /></label>
+        <label class="c-field"><span>Ocupación</span><input name="datos.occupation" /></label>
+        <label class="c-field"><span>Contacto de emergencia</span><input name="datos.emergency_name" /></label>
+        <label class="c-field"><span>Teléfono de emergencia</span><input name="datos.emergency_phone" type="tel" /></label>
+        <label class="c-field"><span>Talla (cm) *</span><input name="datos.height_cm" type="number" inputmode="decimal" step="0.1" min="100" max="250" required /><p class="c-err" data-e="datos.height_cm"></p></label>
+        <label class="c-field"><span>Fecha de inicio *</span><input name="datos.start_date" type="date" value={today} required /></label>
+        <label class="c-field"><span>Modalidad *</span><select name="datos.modality"><option value="gym">Gimnasio</option><option value="casa">En casa (virtual)</option><option value="online">Online</option><option value="mixto">Mixto</option></select></label>
+        <label class="c-field"><span>Gimnasio (nombre)</span><input name="datos.gym_name" /></label>
+      </div>
+    </fieldset>
+
+    <!-- 2 SALUD -->
+    <fieldset data-step="1" class="grid gap-3" hidden>
+      <legend class="c-h2">Salud · PAR-Q+</legend>
+      <p class="c-muted text-sm">Si alguna respuesta es "sí", el sistema pedirá autorización médica antes de entrenar fuerte.</p>
+      <ol class="parq">
+        {PARQ.map((q, i) => (
+          <li>
+            <span>{q}</span>
+            <div class="yn">
+              <label><input type="radio" name={`parq.${i}`} value="0" checked /><span>No</span></label>
+              <label><input type="radio" name={`parq.${i}`} value="1" /><span>Sí</span></label>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div class="c-grid-2">
+        <label class="c-field"><span>Lesiones actuales o pasadas</span><textarea name="salud.injuries"></textarea></label>
+        <label class="c-field"><span>Cirugías</span><textarea name="salud.surgeries"></textarea></label>
+        <label class="c-field"><span>Condiciones a tener en cuenta</span><textarea name="salud.conditions"></textarea></label>
+        <label class="c-field"><span>Medicamentos relevantes</span><textarea name="salud.medications"></textarea></label>
+      </div>
+    </fieldset>
+
+    <!-- 3 ALIMENTACIÓN -->
+    <fieldset data-step="2" class="grid gap-3" hidden>
+      <legend class="c-h2">Alimentación y restricciones</legend>
+      <p class="c-muted text-sm">Las alergias bloquean en la base de datos cualquier plan que las incluya. En alergia grave también se excluyen las trazas.</p>
+      <div class="c-grid-3 rx-form">
+        <label class="c-field"><span>Tipo</span>
+          <select id="rx-type"><option value="alergia">Alergia</option><option value="intolerancia">Intolerancia</option><option value="condicion">Condición (requiere nutricionista)</option><option value="preferencia">Preferencia / estilo de vida</option><option value="no_le_gusta">No le gusta</option></select>
+        </label>
+        <label class="c-field" data-rx="allergen"><span>Alérgeno</span><select id="rx-allergen">{allergens.results.map((a) => <option value={a.code}>{a.label}</option>)}</select></label>
+        <label class="c-field" data-rx="severity"><span>Severidad</span><select id="rx-severity"><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="grave">Grave / anafilaxia</option></select></label>
+        <label class="c-field" data-rx="tag" hidden><span>Restricción</span><select id="rx-tag">{TAGS.map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+        <label class="c-field" data-rx="food" hidden><span>Alimento</span><select id="rx-food">{foods.results.map((f) => <option value={f.id}>{f.name}</option>)}</select></label>
+        <label class="c-field"><span>Nota</span><input id="rx-note" maxlength="200" /></label>
+      </div>
+      <button type="button" class="c-btn c-btn-ghost" id="rx-add" style="justify-self:start"><Icon name="plus" size={16} /> Agregar restricción</button>
+      <ul class="rx-list" id="rx-list"></ul>
+    </fieldset>
+
+    <!-- 4 OBJETIVO -->
+    <fieldset data-step="3" class="grid gap-3" hidden>
+      <legend class="c-h2">Objetivo y hábitos</legend>
+      <div class="c-grid-2">
+        <label class="c-field"><span>Objetivo *</span><select name="objetivo.goal_type">{Object.entries(GOAL_LABEL).map(([v, l]) => <option value={v}>{l}</option>)}</select></label>
+        <label class="c-field"><span>Meta medible</span><input name="objetivo.goal_text" placeholder="Ej: bajar 6 cm de cintura" /></label>
+        <label class="c-field"><span>Fecha objetivo</span><input name="objetivo.goal_date" type="date" min={today} /></label>
+        <label class="c-field"><span>Experiencia</span><select name="objetivo.experience_level"><option value="">-</option><option value="principiante">Principiante</option><option value="intermedio">Intermedio</option><option value="avanzado">Avanzado</option></select></label>
+        <label class="c-field"><span>Días disponibles por semana</span><input name="objetivo.days_per_week" type="number" min="1" max="7" /></label>
+        <label class="c-field"><span>Minutos por sesión</span><input name="objetivo.minutes_per_session" type="number" min="10" max="240" /></label>
+      </div>
+      <fieldset class="grid gap-2">
+        <legend class="text-sm font-semibold">Equipo en casa</legend>
+        <div class="eq">{EQUIPMENT.map((e) => <label><input type="checkbox" name="objetivo.home_equipment" value={e} /><span>{EQ_LABEL[e]}</span></label>)}</div>
+      </fieldset>
+      <div class="c-grid-3">
+        <label class="c-field"><span>Horas de sueño</span><input name="objetivo.sleep_hours" type="number" step="0.5" min="0" max="16" /></label>
+        <label class="c-field"><span>Estrés (1-10)</span><input name="objetivo.stress_level" type="number" min="1" max="10" /></label>
+        <label class="c-field"><span>Agua (L/día)</span><input name="objetivo.water_liters" type="number" step="0.1" min="0" max="10" /></label>
+        <label class="c-field"><span>Pasos diarios</span><input name="objetivo.daily_steps" type="number" min="0" max="60000" /></label>
+        <label class="c-field"><span>Alcohol</span><select name="objetivo.alcohol_frequency"><option value="">-</option><option value="nunca">Nunca</option><option value="ocasional">Ocasional</option><option value="semanal">Semanal</option><option value="diario">Diario</option></select></label>
+        <label class="c-field"><span>Comidas al día</span><input name="objetivo.meals_per_day" type="number" min="1" max="10" /></label>
+      </div>
+      <label class="eq"><input type="checkbox" name="objetivo.smoker" value="1" /><span>Fuma</span></label>
+    </fieldset>
+
+    <!-- 5 MEDICIÓN -->
+    <fieldset data-step="4" class="grid gap-3" hidden>
+      <legend class="c-h2">Primera medición <small class="c-muted">(opcional)</small></legend>
+      <div class="c-grid-3">
+        <label class="c-field"><span>Fecha</span><input name="medicion.measured_on" type="date" value={today} max={today} /></label>
+        <label class="c-field"><span>Peso (kg)</span><input name="medicion.weight_kg" type="number" step="0.1" min="30" max="300" /><p class="c-err" data-e="medicion.weight_kg"></p></label>
+        <label class="c-field"><span>Cintura (cm)</span><input name="medicion.waist_cm" type="number" step="0.1" /></label>
+        <label class="c-field"><span>Cadera (cm)</span><input name="medicion.hip_cm" type="number" step="0.1" /></label>
+        <label class="c-field"><span>Cuello (cm)</span><input name="medicion.neck_cm" type="number" step="0.1" /></label>
+        <label class="c-field"><span>% grasa</span><input name="medicion.body_fat_pct" type="number" step="0.1" /></label>
+        <label class="c-field"><span>Método de % grasa</span><select name="medicion.body_fat_method"><option value="">-</option><option value="bioimpedancia">Bioimpedancia</option><option value="pliegues_jp3">Pliegues JP3</option><option value="pliegues_jp7">Pliegues JP7</option><option value="formula_navy">Fórmula Navy</option><option value="otro">Otro</option></select></label>
+        <label class="c-field"><span>FC en reposo</span><input name="medicion.resting_hr" type="number" /></label>
+      </div>
+    </fieldset>
+
+    <!-- 6 CONSENTIMIENTOS -->
+    <fieldset data-step="5" class="grid gap-3" hidden>
+      <legend class="c-h2">Consentimientos (Ley 1581 de 2012)</legend>
+      <label class="eq"><input type="checkbox" name="consentimientos.datos_personales" value="1" /><span>Autoriza el tratamiento de sus datos personales *</span></label>
+      <label class="eq"><input type="checkbox" name="consentimientos.datos_salud" value="1" /><span>Autoriza el tratamiento de sus datos sensibles de salud *</span></label>
+      <label class="eq"><input type="checkbox" name="consentimientos.fotos_progreso" value="1" /><span>Autoriza fotos de progreso privadas (opcional, revocable)</span></label>
+      <p class="c-err" data-e="consentimientos.datos_personales"></p>
+      <p class="c-err" data-e="consentimientos.datos_salud"></p>
+      <p class="c-muted text-sm">Al crear, el sistema genera una contraseña temporal. El estudiante la cambia en su primer ingreso.</p>
+    </fieldset>
+
+    <p class="c-err" data-e="form" role="alert"></p>
+    <div class="c-row">
+      <button type="button" class="c-btn c-btn-ghost" id="prev" hidden>Atrás</button>
+      <button type="button" class="c-btn" id="next" style="margin-left:auto">Siguiente</button>
+      <button type="submit" class="c-btn" id="submit" hidden><Icon name="check" size={18} /> Crear estudiante</button>
+    </div>
+  </form>
+
+  <section class="c-card done" id="done" hidden>
+    <div class="c-row" style="justify-content:flex-start">
+      <Bladimir state="celebrate" size={96} />
+      <div class="grid gap-1">
+        <h2 class="c-h2">¡Listo! Estudiante creado</h2>
+        <p class="c-muted">Comparte estos datos con el estudiante. La contraseña temporal solo se muestra esta vez.</p>
+      </div>
+    </div>
+    <dl class="cred">
+      <dt>Usuario</dt><dd id="cred-email"></dd>
+      <dt>Contraseña temporal</dt><dd id="cred-pass" class="tnum"></dd>
+    </dl>
+    <div class="c-row" style="justify-content:flex-start">
+      <button class="c-btn" id="copy"><Icon name="clipboard" size={18} /> Copiar</button>
+      <a class="c-btn c-btn-ghost" id="wa" target="_blank" rel="noopener"><Icon name="whatsapp" size={18} /> Enviar por WhatsApp</a>
+      <a class="c-btn c-btn-ghost" id="go">Ver ficha</a>
+    </div>
+  </section>
+</CoachShell>
+
+<style>
+  .wiz-head {
+    grid-template-columns: auto 1fr;
+    align-items: center;
+  }
+  .steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .steps li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 6px;
+    border-radius: 999px;
+    background: var(--card2);
+    color: var(--mute);
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .steps li span {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--bg);
+    font-size: 12px;
+  }
+  .steps li.on {
+    color: #0d0d0d;
+    background: var(--lime);
+  }
+  .steps li.ok {
+    color: var(--lime);
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+  legend {
+    padding: 0;
+    margin-bottom: 8px;
+  }
+  .parq {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 10px;
+  }
+  .parq li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .yn {
+    display: flex;
+    gap: 6px;
+  }
+  .yn input,
+  .eq input[type="checkbox"] + span::before {
+    accent-color: var(--lime);
+  }
+  .yn input {
+    position: absolute;
+    opacity: 0;
+  }
+  .yn span {
+    display: grid;
+    place-items: center;
+    min-width: 56px;
+    min-height: 38px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .yn input:checked + span {
+    background: var(--lime);
+    border-color: var(--lime);
+    color: #0d0d0d;
+  }
+  .yn input[value="1"]:checked + span {
+    background: var(--err);
+    border-color: var(--err);
+  }
+  .yn input:focus-visible + span {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px;
+  }
+  .eq {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    font-size: 14px;
+  }
+  .eq label,
+  label.eq {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .eq input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--lime);
+  }
+  .rx-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .rx-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--card2);
+    font-size: 14px;
+  }
+  .rx-list button {
+    border: 0;
+    background: none;
+    color: var(--mute);
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .cred {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    margin: 0;
+    padding: 14px;
+    border-radius: 14px;
+    background: var(--card2);
+  }
+  .cred dt {
+    color: var(--mute);
+  }
+  .cred dd {
+    margin: 0;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--lime);
+  }
+</style>
+
+<script>
+  const form = document.getElementById("wiz") as HTMLFormElement;
+  const face = document.querySelector<HTMLElement>(".wiz-face");
+  const say = document.querySelector<HTMLElement>("[data-wiz-say]")!;
+  const steps = [...form.querySelectorAll<HTMLFieldSetElement>("fieldset[data-step]")];
+  const dots = [...document.querySelectorAll<HTMLElement>("[data-step-dot]")];
+  const prev = document.getElementById("prev")!, next = document.getElementById("next")!, submit = document.getElementById("submit")!;
+  const LINES: [string, string][] = [
+    ["point", "Empecemos con los datos básicos."],
+    ["think", "Ahora la salud. Si algo da \"sí\", lo tendremos en cuenta."],
+    ["cook", "¿Alguna alergia o restricción? Esto protege sus planes de comida."],
+    ["lift", "¿Qué quiere lograr y cómo es su día a día?"],
+    ["selfie", "Si ya lo mediste, deja la primera medición."],
+    ["point", "Último paso: autorizaciones."],
+  ];
+  let step = 0;
+  const show = (i: number) => {
+    step = i;
+    steps.forEach((f, k) => (f.hidden = k !== i));
+    dots.forEach((d, k) => {
+      d.classList.toggle("on", k === i);
+      d.classList.toggle("ok", k < i);
+    });
+    prev.hidden = i === 0;
+    next.hidden = i === steps.length - 1;
+    submit.hidden = i !== steps.length - 1;
+    face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: LINES[i]![0] }));
+    say.textContent = LINES[i]![1];
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const required: Record<number, string[]> = { 0: ["datos.full_name", "datos.email", "datos.birth_date", "datos.sex", "datos.height_cm"] };
+  next.addEventListener("click", () => {
+    const missing = (required[step] ?? []).filter((n) => !(form.elements.namedItem(n) as HTMLInputElement).value.trim());
+    form.querySelectorAll<HTMLElement>("[data-e]").forEach((e) => (e.textContent = ""));
+    if (missing.length) {
+      missing.forEach((n) => {
+        const e = form.querySelector<HTMLElement>(`[data-e="${n}"]`);
+        if (e) e.textContent = "Campo obligatorio.";
+      });
+      face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "sad-soft" }));
+      return;
+    }
+    show(step + 1);
+  });
+  prev.addEventListener("click", () => show(step - 1));
+
+  // restrictions
+  type Rx = { type: string; allergen?: string | undefined; severity?: string | undefined; restriction_tag?: string | undefined; food_id?: string | undefined; requires_nutritionist: number; note?: string | undefined; label: string };
+  const rx: Rx[] = [];
+  const typeSel = document.getElementById("rx-type") as unknown as HTMLSelectElement;
+  const field = (k: string) => form.querySelector<HTMLElement>(`[data-rx="${k}"]`)!;
+  const syncRx = () => {
+    const t = typeSel.value;
+    field("allergen").hidden = !(t === "alergia" || t === "intolerancia");
+    field("severity").hidden = t !== "alergia";
+    field("tag").hidden = !(t === "intolerancia" || t === "condicion" || t === "preferencia");
+    field("food").hidden = t !== "no_le_gusta";
+  };
+  typeSel.addEventListener("change", syncRx);
+  syncRx();
+  const list = document.getElementById("rx-list")!;
+  const render = () => {
+    list.innerHTML = rx.map((r, i) => `<li><span>${r.label}</span><button type="button" data-i="${i}" aria-label="Quitar">×</button></li>`).join("");
+    list.querySelectorAll<HTMLButtonElement>("button").forEach((b) => b.addEventListener("click", () => (rx.splice(Number(b.dataset.i), 1), render())));
+  };
+  document.getElementById("rx-add")!.addEventListener("click", () => {
+    const t = typeSel.value;
+    const sel = (id: string) => document.getElementById(id) as unknown as HTMLSelectElement;
+    const txt = (id: string) => sel(id).selectedOptions[0]?.textContent ?? "";
+    const note = (document.getElementById("rx-note") as HTMLInputElement).value.trim() || undefined;
+    let r: Rx;
+    if (t === "alergia") r = { type: t, allergen: sel("rx-allergen").value, severity: sel("rx-severity").value, requires_nutritionist: 0, note, label: `Alergia ${sel("rx-severity").value}: ${txt("rx-allergen")}` };
+    else if (t === "no_le_gusta") r = { type: t, food_id: sel("rx-food").value, requires_nutritionist: 0, note, label: `No le gusta: ${txt("rx-food")}` };
+    else r = { type: t, restriction_tag: sel("rx-tag").value, requires_nutritionist: t === "condicion" ? 1 : 0, note, label: `${typeSel.selectedOptions[0]?.textContent}: ${txt("rx-tag")}` };
+    rx.push(r);
+    render();
+  });
+
+  // build payload
+  const payload = () => {
+    const fd = new FormData(form);
+    const out: Record<string, Record<string, unknown>> = { datos: {}, salud: {}, objetivo: { home_equipment: [] }, medicion: {}, consentimientos: {} };
+    const parq = Array(7).fill(0);
+    for (const [k, v] of fd.entries()) {
+      const [group, key] = k.split(".") as [string, string];
+      if (group === "parq") parq[Number(key)] = Number(v);
+      else if (k === "objetivo.home_equipment") (out.objetivo!.home_equipment as string[]).push(String(v));
+      else if (group === "consentimientos") out.consentimientos![key] = v === "1";
+      else if (out[group]) out[group]![key] = v;
+    }
+    out.salud!.parq = parq;
+    out.consentimientos = { datos_personales: false, datos_salud: false, fotos_progreso: false, ...out.consentimientos };
+    const med = out.medicion!;
+    const body: Record<string, unknown> = { op: "crear", ...out, restricciones: rx.map(({ label, ...r }) => r) };
+    if (!med.weight_kg) delete body.medicion;
+    return body;
+  };
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    submit.setAttribute("disabled", "");
+    face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "think" }));
+    form.querySelectorAll<HTMLElement>("[data-e]").forEach((x) => (x.textContent = ""));
+    const res = await fetch("/api/coach/students", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload()) }).catch(() => null);
+    const data = res ? ((await res.json()) as { ok: boolean; id?: string; email?: string; tempPassword?: string; errors?: Record<string, string> }) : { ok: false, errors: { form: "Sin conexión." } };
+    submit.removeAttribute("disabled");
+    if (!data.ok) {
+      const errs = data.errors ?? {};
+      for (const [k, v] of Object.entries(errs)) {
+        const el = form.querySelector<HTMLElement>(`[data-e="${k}"]`) ?? form.querySelector<HTMLElement>('[data-e="form"]');
+        if (el) el.textContent = v;
+      }
+      const first = Object.keys(errs)[0] ?? "";
+      const stepOf = first.startsWith("datos") ? 0 : first.startsWith("salud") ? 1 : first.startsWith("restricciones") ? 2 : first.startsWith("objetivo") ? 3 : first.startsWith("medicion") ? 4 : 5;
+      show(stepOf);
+      face?.dispatchEvent(new CustomEvent("bladimir:state", { detail: "sad-soft" }));
+      return;
+    }
+    form.hidden = true;
+    document.querySelector(".wiz-head")!.setAttribute("hidden", "");
+    const done = document.getElementById("done")!;
+    done.hidden = false;
+    document.getElementById("cred-email")!.textContent = data.email!;
+    document.getElementById("cred-pass")!.textContent = data.tempPassword!;
+    const msg = `¡Hola! Ya tienes tu cuenta en Blado.\nEntra a ${location.origin}/login\nUsuario: ${data.email}\nContraseña temporal: ${data.tempPassword}\nTe pedirá crear una nueva.`;
+    const phone = String((form.elements.namedItem("datos.phone") as HTMLInputElement).value).replace(/\D/g, "");
+    (document.getElementById("wa") as HTMLAnchorElement).href = `https://wa.me/${phone ? (phone.startsWith("57") ? phone : `57${phone}`) : ""}?text=${encodeURIComponent(msg)}`;
+    (document.getElementById("go") as HTMLAnchorElement).href = `/coach/estudiantes/${data.id}`;
+    document.getElementById("copy")!.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(msg);
+        (document.getElementById("copy") as HTMLButtonElement).textContent = "Copiado";
+      } catch {}
+    });
+  });
+  show(0);
+</script>

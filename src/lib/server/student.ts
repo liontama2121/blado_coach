@@ -37,6 +37,10 @@ export interface SessionRow {
   ends_at: string;
   location: "gym" | "casa";
   status: string;
+  meet_url: string | null;
+  counter_starts_at: string | null;
+  counter_note: string | null;
+  note_coach: string | null;
 }
 
 export async function getStudent(db: D1Database, studentId: string) {
@@ -64,9 +68,9 @@ export async function getMeasurements(db: D1Database, studentId: string) {
 export async function getSessions(db: D1Database, studentId: string, fromIso: string) {
   const r = await db
     .prepare(
-      `SELECT id, starts_at, ends_at, location, status
+      `SELECT id, starts_at, ends_at, location, status, meet_url, counter_starts_at, counter_note, note_coach
          FROM training_sessions
-        WHERE student_id = ?1 AND ends_at >= ?2 AND status IN ('solicitada', 'confirmada')
+        WHERE student_id = ?1 AND ends_at >= ?2 AND status IN ('solicitada', 'confirmada', 'rechazada')
         ORDER BY starts_at ASC LIMIT 20`,
     )
     .bind(studentId, fromIso)

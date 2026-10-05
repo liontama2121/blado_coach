@@ -8,6 +8,7 @@ import { add, recipePortion, scale, sum, ZERO, type Macros, type Per100 } from "
 
 export interface WorkoutItem {
   id: string;
+  exercise_id: string;
   position: number;
   sets: number;
   reps: string;
@@ -44,7 +45,7 @@ export async function getWorkoutPlan(db: D1Database, studentId: string): Promise
     db.prepare(`SELECT id, weekday, title, location FROM workout_days WHERE plan_id = ?1 ORDER BY weekday`).bind(plan.id).all<Omit<WorkoutDay, "items">>(),
     db
       .prepare(
-        `SELECT i.id, i.day_id, i.position, i.sets, i.reps, i.load_kg, i.rest_s, i.rir, i.notes, e.name, e.muscle_group, e.equipment, e.cue
+        `SELECT i.id, i.day_id, i.exercise_id, i.position, i.sets, i.reps, i.load_kg, i.rest_s, i.rir, i.notes, e.name, e.muscle_group, e.equipment, e.cue
            FROM workout_items i JOIN workout_days d ON d.id = i.day_id JOIN exercises e ON e.id = i.exercise_id
           WHERE d.plan_id = ?1 ORDER BY i.position`,
       )

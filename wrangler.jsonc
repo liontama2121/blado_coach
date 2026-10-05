@@ -26,7 +26,7 @@
 
   "vars": {
     "SESSION_TTL_DAYS": "14",
-    "TRAVEL_BUFFER_MIN": "30"
+    "TRAVEL_BUFFER_MIN": "0"
   }
   // Secretos (no van aquí): `npx wrangler secret put FILE_URL_SECRET`
   // En local se ponen en .dev.vars (ver .dev.vars.example).

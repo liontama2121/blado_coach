@@ -25,7 +25,7 @@ export type LeadInput = z.infer<typeof leadSchema>;
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {
-    const key = String(issue.path[0] ?? "form");
+    const key = issue.path.length ? issue.path.map(String).join(".") : "form";
     out[key] ??= issue.message;
   }
   return out;

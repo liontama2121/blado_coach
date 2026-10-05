@@ -1,0 +1,512 @@
+---
+// Student profile for the coach: everything about one student + edit forms + account actions.
+export const prerender = false;
+import { env } from "cloudflare:workers";
+import CoachShell from "@/layouts/CoachShell.astro";
+import Icon from "@/components/Icon.astro";
+import { formatDate } from "@/config/site";
+import { ageOn, bmi, delta, round, waistHeightRatio } from "@/lib/metrics";
+import { bogotaParts, formatMinute } from "@/lib/schedule";
+import { MODALITY_LABEL, STATUS_LABEL } from "@/lib/server/coach";
+import { getMealPlan, getTargets, getWorkoutPlan, SLOT_LABEL } from "@/lib/server/plans";
+import { GOAL_LABEL, getConsents, getMeasurements, getRecentCheckins } from "@/lib/server/student";
+import { EQUIPMENT, PARQ } from "@/lib/validation/student";
+
+const id = Astro.params.id!;
+const db = env.DB;
+const s = await db.prepare(`SELECT * FROM students WHERE id = ?1`).bind(id).first<Record<string, any>>();
+if (!s) return Astro.redirect("/coach/estudiantes");
+
+const [health, measurements, checkins, consents, restrictions, workout, meals, targets, sessions, account, allergens, foods] = await Promise.all([
+  db.prepare(`SELECT * FROM health_screening WHERE student_id = ?1`).bind(id).first<Record<string, any>>(),
+  getMeasurements(db, id),
+  getRecentCheckins(db, id, 8),
+  getConsents(db, id),
+  db.prepare(`SELECT r.id, r.type, r.severity, r.restriction_tag, r.note, a.label AS allergen_label, f.name AS food_name FROM dietary_restrictions r LEFT JOIN allergens a ON a.code = r.allergen LEFT JOIN foods f ON f.id = r.food_id WHERE r.student_id = ?1`).bind(id).all<{ id: string; type: string; severity: string | null; restriction_tag: string | null; note: string | null; allergen_label: string | null; food_name: string | null }>(),
+  getWorkoutPlan(db, id),
+  getMealPlan(db, id),
+  getTargets(db, id),
+  db.prepare(`SELECT starts_at, location, status, meet_url FROM training_sessions WHERE student_id = ?1 ORDER BY starts_at DESC LIMIT 12`).bind(id).all<{ starts_at: string; location: string; status: string; meet_url: string | null }>(),
+  db.prepare(`SELECT email, must_change_password, disabled, last_login_at FROM users WHERE id = ?1`).bind(s.user_id ?? "").first<{ email: string; must_change_password: number; disabled: number; last_login_at: string | null }>(),
+  db.prepare(`SELECT code, label FROM allergens ORDER BY label`).all<{ code: string; label: string }>(),
+  db.prepare(`SELECT id, name FROM foods ORDER BY name`).all<{ id: string; name: string }>(),
+]);
+const draftMeals = await db.prepare(`SELECT id, change_reason FROM meal_plans WHERE student_id = ?1 AND status = 'borrador' ORDER BY version DESC LIMIT 1`).bind(id).first<{ id: string; change_reason: string | null }>();
+
+const tab = Astro.url.searchParams.get("tab") ?? "resumen";
+const TABS = [
+  ["resumen", "Resumen"], ["datos", "Datos"], ["salud", "Salud"], ["alimentacion", "Alimentación"], ["rutina", "Rutina"],
+  ["mediciones", "Mediciones"], ["sesiones", "Sesiones"], ["checkins", "Check-ins"], ["cuenta", "Cuenta"],
+] as const;
+const today = bogotaParts(new Date()).date;
+const age = ageOn(s.birth_date, today);
+const first = measurements[0];
+const last = measurements.at(-1);
+const fmt = (n: number | null | undefined, d = 1) => (n == null ? "-" : new Intl.NumberFormat("es-CO", { maximumFractionDigits: d }).format(n));
+const dW = delta(last?.weight_kg, first?.weight_kg);
+const dWaist = delta(last?.waist_cm, first?.waist_cm);
+const parqYes = health ? [1, 2, 3, 4, 5, 6, 7].filter((i) => health[`parq_q${i}`] === 1) : [];
+const severe = restrictions.results.filter((r) => r.type === "alergia" && r.severity === "grave");
+const equipment: string[] = JSON.parse(s.home_equipment ?? "[]");
+const TAGS: Record<string, string> = { vegano: "Vegano", vegetariano: "Vegetariano", pescetariano: "Pescetariano", sin_cerdo: "Sin cerdo", sin_res: "Sin res", sin_lacteos: "Sin lácteos", sin_lactosa: "Sin lactosa", sin_picante: "Sin picante", celiaquia: "Celiaquía" };
+const rxLabel = (r: (typeof restrictions.results)[number]) =>
+  r.type === "alergia" ? `Alergia ${r.severity}: ${r.allergen_label}` : r.type === "no_le_gusta" ? `No le gusta: ${r.food_name}` : `${r.type}: ${TAGS[r.restriction_tag ?? ""] ?? r.restriction_tag ?? r.allergen_label}`;
+const when = (iso: string) => {
+  const p = bogotaParts(new Date(iso));
+  return `${formatDate(p.date)} · ${formatMinute(p.minute)}`;
+};
+const v = (k: string) => (s[k] ?? "") as string;
+---
+
+<CoachShell title={s.full_name} section="estudiantes">
+  <a href="/coach/estudiantes" class="c-muted text-sm" style="text-decoration:none">← Estudiantes</a>
+  <header class="c-row">
+    <div class="grid gap-2">
+      <h1 class="c-h1">{s.full_name}</h1>
+      <div class="flex flex-wrap gap-2">
+        <span class:list={["c-tag", s.status === "activo" && "c-tag-ok"]}>{STATUS_LABEL[s.status]}</span>
+        <span class="c-tag">{MODALITY_LABEL[s.modality]}</span>
+        <span class="c-tag">{GOAL_LABEL[s.goal_type]}</span>
+        {severe.map((r) => <span class="c-tag c-tag-err">Alergia grave: {r.allergen_label}</span>)}
+        {parqYes.length > 0 && !health?.medical_clearance_key && <span class="c-tag c-tag-warn">PAR-Q con sí: pedir autorización médica</span>}
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a class="c-btn" href={`/coach/estudiantes/${id}/rutina`}><Icon name="barbell" size={18} /> Rutina</a>
+      <a class="c-btn" href={`/coach/estudiantes/${id}/alimentacion`}><Icon name="clipboard" size={18} /> Alimentación</a>
+    </div>
+  </header>
+
+  <nav class="ptabs" aria-label="Secciones del estudiante">
+    {TABS.map(([k, l]) => <a href={`?tab=${k}`} aria-current={tab === k ? "page" : undefined}>{l}</a>)}
+  </nav>
+
+  {tab === "resumen" && (
+    <>
+      <section class="kpis">
+        <div class="c-card"><span class="c-muted">Peso</span><b>{fmt(last?.weight_kg)}<small> kg</small></b><span class="c-muted text-sm">{dW ? `${dW.abs > 0 ? "+" : ""}${fmt(dW.abs)} kg desde el inicio` : "Sin datos"}</span></div>
+        <div class="c-card"><span class="c-muted">Cintura</span><b>{fmt(last?.waist_cm)}<small> cm</small></b><span class="c-muted text-sm">{dWaist ? `${dWaist.abs > 0 ? "+" : ""}${fmt(dWaist.abs)} cm` : "Sin datos"}</span></div>
+        <div class="c-card"><span class="c-muted">IMC</span><b>{fmt(bmi(last?.weight_kg, s.height_cm))}</b><span class="c-muted text-xs">No distingue músculo de grasa</span></div>
+        <div class="c-card"><span class="c-muted">Cintura / altura</span><b>{fmt(waistHeightRatio(last?.waist_cm, s.height_cm) ? round(waistHeightRatio(last?.waist_cm, s.height_cm)!, 2) : null, 2)}</b><span class="c-muted text-xs">Referencia &lt; 0,5</span></div>
+      </section>
+      <div class="c-grid-2">
+        <section class="c-card">
+          <h2 class="c-h2">Ficha</h2>
+          <dl class="dl">
+            <dt>Edad</dt><dd>{age ?? "-"} años</dd>
+            <dt>Talla</dt><dd>{s.height_cm} cm</dd>
+            <dt>Teléfono</dt><dd>{s.phone ?? "-"}</dd>
+            <dt>Correo</dt><dd>{s.email ?? "-"}</dd>
+            <dt>Inicio</dt><dd>{formatDate(s.start_date)}</dd>
+            <dt>Meta</dt><dd>{s.goal_text ?? "-"}</dd>
+            <dt>Emergencia</dt><dd>{s.emergency_name ? `${s.emergency_name} · ${s.emergency_phone ?? ""}` : "-"}</dd>
+          </dl>
+        </section>
+        <section class="c-card">
+          <h2 class="c-h2">Planes</h2>
+          <div class="plan-line"><span>Rutina</span>{workout ? <span class="c-tag c-tag-ok">{workout.name} · {workout.days.length} días</span> : <span class="c-tag c-tag-warn">Sin asignar</span>}</div>
+          <div class="plan-line"><span>Alimentación</span>{meals ? <span class="c-tag c-tag-ok">Versión {meals.version} · {meals.meals.length} comidas</span> : <span class="c-tag c-tag-warn">{draftMeals ? "En borrador" : "Sin asignar"}</span>}</div>
+          {draftMeals?.change_reason?.startsWith("Revalidación") && <p class="c-tag c-tag-err" style="justify-self:start">El plan se despublicó por una nueva restricción. Revísalo.</p>}
+          <div class="plan-line"><span>Objetivo diario</span><span class="c-muted">{targets ? `${targets.kcal} kcal · ${targets.protein_g} g proteína` : "Sin definir"}</span></div>
+          <h3 class="text-sm font-semibold" style="margin:6px 0 0">Restricciones</h3>
+          <div class="flex flex-wrap gap-2">{restrictions.results.length ? restrictions.results.map((r) => <span class:list={["c-tag", r.severity === "grave" && "c-tag-err"]}>{rxLabel(r)}</span>) : <span class="c-muted text-sm">Ninguna</span>}</div>
+        </section>
+      </div>
+    </>
+  )}
+
+  {tab === "datos" && (
+    <form class="c-card" data-op="datos" novalidate>
+      <h2 class="c-h2">Datos personales</h2>
+      <div class="c-grid-2">
+        <label class="c-field"><span>Nombre completo</span><input name="full_name" value={v("full_name")} /><p class="c-err" data-e="full_name"></p></label>
+        <label class="c-field"><span>Correo (usuario)</span><input name="email" type="email" value={v("email")} /><p class="c-err" data-e="email"></p></label>
+        <label class="c-field"><span>Fecha de nacimiento</span><input name="birth_date" type="date" value={v("birth_date")} /></label>
+        <label class="c-field"><span>Sexo biológico</span><select name="sex"><option value="F" selected={s.sex === "F"}>Femenino</option><option value="M" selected={s.sex === "M"}>Masculino</option></select></label>
+        <label class="c-field"><span>Teléfono</span><input name="phone" value={v("phone")} /></label>
+        <label class="c-field"><span>Ocupación</span><input name="occupation" value={v("occupation")} /></label>
+        <label class="c-field"><span>Contacto de emergencia</span><input name="emergency_name" value={v("emergency_name")} /></label>
+        <label class="c-field"><span>Teléfono de emergencia</span><input name="emergency_phone" value={v("emergency_phone")} /></label>
+        <label class="c-field"><span>Talla (cm)</span><input name="height_cm" type="number" step="0.1" value={v("height_cm")} /><p class="c-err" data-e="height_cm"></p></label>
+        <label class="c-field"><span>Fecha de inicio</span><input name="start_date" type="date" value={v("start_date")} /></label>
+        <label class="c-field"><span>Modalidad</span><select name="modality">{Object.entries(MODALITY_LABEL).map(([k, l]) => <option value={k} selected={s.modality === k}>{l}</option>)}</select></label>
+        <label class="c-field"><span>Gimnasio</span><input name="gym_name" value={v("gym_name")} /></label>
+        <label class="c-field"><span>Dirección del gimnasio</span><input name="gym_address" value={v("gym_address")} /></label>
+      </div>
+      <h2 class="c-h2" style="margin-top:8px">Objetivo y hábitos</h2>
+      <p class="c-muted text-sm">Se guarda aparte con el botón de abajo.</p>
+      <p class="c-err" data-e="form"></p>
+      <button class="c-btn" style="justify-self:start">Guardar datos</button>
+    </form>
+  )}
+  {tab === "datos" && (
+    <form class="c-card" data-op="objetivo" novalidate>
+      <div class="c-grid-2">
+        <label class="c-field"><span>Objetivo</span><select name="goal_type">{Object.entries(GOAL_LABEL).map(([k, l]) => <option value={k} selected={s.goal_type === k}>{l}</option>)}</select></label>
+        <label class="c-field"><span>Meta medible</span><input name="goal_text" value={v("goal_text")} /></label>
+        <label class="c-field"><span>Fecha objetivo</span><input name="goal_date" type="date" value={v("goal_date")} /></label>
+        <label class="c-field"><span>Experiencia</span><select name="experience_level"><option value="">-</option>{["principiante", "intermedio", "avanzado"].map((x) => <option value={x} selected={s.experience_level === x}>{x}</option>)}</select></label>
+        <label class="c-field"><span>Días por semana</span><input name="days_per_week" type="number" value={v("days_per_week")} /></label>
+        <label class="c-field"><span>Minutos por sesión</span><input name="minutes_per_session" type="number" value={v("minutes_per_session")} /></label>
+        <label class="c-field"><span>Horas de sueño</span><input name="sleep_hours" type="number" step="0.5" value={v("sleep_hours")} /></label>
+        <label class="c-field"><span>Estrés (1-10)</span><input name="stress_level" type="number" value={v("stress_level")} /></label>
+        <label class="c-field"><span>Agua (L/día)</span><input name="water_liters" type="number" step="0.1" value={v("water_liters")} /></label>
+        <label class="c-field"><span>Pasos diarios</span><input name="daily_steps" type="number" value={v("daily_steps")} /></label>
+        <label class="c-field"><span>Alcohol</span><select name="alcohol_frequency"><option value="">-</option>{["nunca", "ocasional", "semanal", "diario"].map((x) => <option value={x} selected={s.alcohol_frequency === x}>{x}</option>)}</select></label>
+        <label class="c-field"><span>Comidas al día</span><input name="meals_per_day" type="number" value={v("meals_per_day")} /></label>
+      </div>
+      <div class="eq">{EQUIPMENT.map((e) => <label><input type="checkbox" name="home_equipment" value={e} checked={equipment.includes(e)} /> {e.replace("_", " ")}</label>)}</div>
+      <label class="eq"><input type="checkbox" name="smoker" value="1" checked={s.smoker === 1} /> Fuma</label>
+      <p class="c-err" data-e="form"></p>
+      <button class="c-btn" style="justify-self:start">Guardar objetivo y hábitos</button>
+    </form>
+  )}
+
+  {tab === "salud" && (
+    <form class="c-card" data-op="salud" novalidate>
+      <h2 class="c-h2">PAR-Q+ y antecedentes</h2>
+      <ol class="parq">
+        {PARQ.map((q, i) => (
+          <li>
+            <span>{q}</span>
+            <select name={`parq.${i}`} class="c-input" style="width:auto"><option value="0" selected={health?.[`parq_q${i + 1}`] !== 1}>No</option><option value="1" selected={health?.[`parq_q${i + 1}`] === 1}>Sí</option></select>
+          </li>
+        ))}
+      </ol>
+      <div class="c-grid-2">
+        {["injuries", "surgeries", "conditions", "medications"].map((k) => (
+          <label class="c-field"><span>{{ injuries: "Lesiones", surgeries: "Cirugías", conditions: "Condiciones", medications: "Medicamentos" }[k]}</span><textarea name={k}>{health?.[k] ?? ""}</textarea></label>
+        ))}
+      </div>
+      <p class="c-muted text-sm">Datos sensibles: solo los ven el coach y el propio estudiante.</p>
+      <p class="c-err" data-e="form"></p>
+      <button class="c-btn" style="justify-self:start">Guardar salud</button>
+    </form>
+  )}
+
+  {tab === "alimentacion" && (
+    <>
+      <section class="c-card">
+        <div class="c-row"><h2 class="c-h2">Restricciones alimentarias</h2></div>
+        <ul class="rx">
+          {restrictions.results.map((r) => (
+            <li><span class:list={["c-tag", r.severity === "grave" && "c-tag-err"]}>{rxLabel(r)}</span>{r.note && <span class="c-muted text-sm">{r.note}</span>}<button class="c-btn c-btn-ghost" data-rm={r.id}>Quitar</button></li>
+          ))}
+        </ul>
+        <form class="c-grid-3" data-op="restriccion" novalidate>
+          <label class="c-field"><span>Tipo</span><select name="type"><option value="alergia">Alergia</option><option value="intolerancia">Intolerancia</option><option value="condicion">Condición (requiere nutricionista)</option><option value="preferencia">Preferencia</option><option value="no_le_gusta">No le gusta</option></select></label>
+          <label class="c-field"><span>Alérgeno</span><select name="allergen"><option value="">-</option>{allergens.results.map((a) => <option value={a.code}>{a.label}</option>)}</select></label>
+          <label class="c-field"><span>Severidad</span><select name="severity"><option value="">-</option><option value="leve">Leve</option><option value="moderada">Moderada</option><option value="grave">Grave</option></select></label>
+          <label class="c-field"><span>Restricción</span><select name="restriction_tag"><option value="">-</option>{Object.entries(TAGS).map(([k, l]) => <option value={k}>{l}</option>)}</select></label>
+          <label class="c-field"><span>Alimento (no le gusta)</span><select name="food_id"><option value="">-</option>{foods.results.map((f) => <option value={f.id}>{f.name}</option>)}</select></label>
+          <label class="c-field"><span>Nota</span><input name="note" /></label>
+          <p class="c-err" data-e="form" style="grid-column:1/-1"></p>
+          <button class="c-btn" style="justify-self:start">Agregar restricción</button>
+        </form>
+        <p class="c-muted text-xs">Al agregar una restricción, los planes publicados que dejen de ser seguros vuelven a borrador automáticamente.</p>
+      </section>
+      <section class="c-card">
+        <div class="c-row"><h2 class="c-h2">Plan de alimentación</h2><a class="c-btn" href={`/coach/estudiantes/${id}/alimentacion`}>Abrir editor</a></div>
+        {meals ? <p>Versión {meals.version} publicada · {meals.meals.map((m) => SLOT_LABEL[m.slot]).join(", ")}</p> : <p class="c-muted">Sin plan publicado.</p>}
+      </section>
+    </>
+  )}
+
+  {tab === "rutina" && (
+    <section class="c-card">
+      <div class="c-row"><h2 class="c-h2">Rutina</h2><a class="c-btn" href={`/coach/estudiantes/${id}/rutina`}>Abrir editor</a></div>
+      {workout ? (
+        <ul class="rx">{workout.days.map((d) => <li><strong>{["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][d.weekday]}</strong><span>{d.title}</span><span class="c-muted text-sm">{d.items.length} ejercicios · {d.location}</span></li>)}</ul>
+      ) : <p class="c-muted">Sin rutina publicada.</p>}
+    </section>
+  )}
+
+  {tab === "mediciones" && (
+    <>
+      <form class="c-card" data-op="medicion" novalidate>
+        <h2 class="c-h2">Nueva medición</h2>
+        <div class="c-grid-3">
+          <label class="c-field"><span>Fecha</span><input name="measured_on" type="date" value={today} max={today} /></label>
+          <label class="c-field"><span>Peso (kg)</span><input name="weight_kg" type="number" step="0.1" /><p class="c-err" data-e="weight_kg"></p></label>
+          <label class="c-field"><span>Cintura (cm)</span><input name="waist_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Cadera (cm)</span><input name="hip_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Cuello (cm)</span><input name="neck_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Pecho (cm)</span><input name="chest_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Brazo relajado der. (cm)</span><input name="arm_relaxed_r_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Muslo der. (cm)</span><input name="thigh_r_cm" type="number" step="0.1" /></label>
+          <label class="c-field"><span>% grasa</span><input name="body_fat_pct" type="number" step="0.1" /></label>
+          <label class="c-field"><span>Método</span><select name="body_fat_method"><option value="">-</option><option value="bioimpedancia">Bioimpedancia</option><option value="pliegues_jp3">JP3</option><option value="pliegues_jp7">JP7</option><option value="formula_navy">Navy</option><option value="otro">Otro</option></select></label>
+          <label class="c-field"><span>FC en reposo</span><input name="resting_hr" type="number" /></label>
+          <label class="c-field"><span>Notas</span><input name="coach_notes" /></label>
+        </div>
+        <p class="c-err" data-e="form"></p>
+        <button class="c-btn" style="justify-self:start">Guardar medición</button>
+      </form>
+      <section class="c-card">
+        <h2 class="c-h2">Historial</h2>
+        <div class="c-table-wrap"><table class="c-table">
+          <thead><tr><th>Fecha</th><th>Peso</th><th>Cintura</th><th>Cadera</th><th>Cuello</th><th>% grasa</th></tr></thead>
+          <tbody>{[...measurements].reverse().map((m) => <tr><td>{formatDate(m.measured_on)}</td><td>{fmt(m.weight_kg)} kg</td><td>{fmt(m.waist_cm)}</td><td>{fmt(m.hip_cm)}</td><td>{fmt(m.neck_cm)}</td><td>{fmt(m.body_fat_pct)}</td></tr>)}</tbody>
+        </table></div>
+      </section>
+    </>
+  )}
+
+  {tab === "sesiones" && (
+    <section class="c-card">
+      <div class="c-row"><h2 class="c-h2">Sesiones</h2><a class="c-btn c-btn-ghost" href="/coach/sesiones">Responder propuestas</a></div>
+      <ul class="rx">{sessions.results.map((x) => <li><span class="tnum">{when(x.starts_at)}</span><span class="c-tag">{x.location === "casa" ? "Virtual (Meet)" : "Gimnasio"}</span><span class:list={["c-tag", x.status === "confirmada" && "c-tag-ok"]}>{x.status}</span></li>)}</ul>
+    </section>
+  )}
+
+  {tab === "checkins" && (
+    <section class="c-card">
+      <h2 class="c-h2">Check-ins recientes</h2>
+      <div class="c-table-wrap"><table class="c-table">
+        <thead><tr><th>Semana</th><th>Entrenos</th><th>Alimentación</th><th>Energía</th><th>Sueño</th></tr></thead>
+        <tbody>{checkins.map((c) => <tr><td>{formatDate(c.week_start)}</td><td>{c.sessions_done}/{c.sessions_planned}</td><td>{c.nutrition_adherence}/10</td><td>{c.energy}/10</td><td>{c.sleep_quality}/10</td></tr>)}</tbody>
+      </table></div>
+    </section>
+  )}
+
+  {tab === "cuenta" && (
+    <>
+      <section class="c-card">
+        <h2 class="c-h2">Cuenta</h2>
+        <dl class="dl">
+          <dt>Usuario</dt><dd>{account?.email ?? "-"}</dd>
+          <dt>Último ingreso</dt><dd>{account?.last_login_at ? formatDate(account.last_login_at) : "Nunca"}</dd>
+          <dt>Estado</dt><dd>{account?.disabled ? "Bloqueada" : account?.must_change_password ? "Pendiente de crear contraseña" : "Activa"}</dd>
+        </dl>
+        <div class="flex flex-wrap gap-2">
+          <button class="c-btn c-btn-ghost" data-act="clave">Generar nueva clave temporal</button>
+          {["activo", "pausado", "finalizado"].filter((x) => x !== s.status).map((x) => <button class="c-btn c-btn-ghost" data-act="estado" data-status={x}>Marcar como {STATUS_LABEL[x]?.toLowerCase()}</button>)}
+        </div>
+        <p class="c-muted text-xs">Finalizado bloquea el ingreso pero conserva el historial. Pausado deja la cuenta activa.</p>
+        <p class="cred" id="cred" hidden></p>
+        <p class="c-err" data-e="acct"></p>
+      </section>
+      <section class="c-card">
+        <h2 class="c-h2">Consentimientos</h2>
+        <ul class="rx">{consents.map((c) => <li><span>{c.kind.replace("_", " ")}</span><span class="c-muted text-sm">{formatDate(c.accepted_at)} · v{c.text_version}</span><span class:list={["c-tag", !c.revoked_at && "c-tag-ok"]}>{c.revoked_at ? "Revocado" : "Activo"}</span></li>)}</ul>
+      </section>
+      <section class="c-card danger">
+        <h2 class="c-h2">Eliminar definitivamente</h2>
+        <p class="c-muted text-sm">Borra al estudiante y todo su historial (derecho de supresión, Ley 1581). No se puede deshacer. Escribe su nombre completo para confirmar.</p>
+        <div class="c-row" style="justify-content:flex-start">
+          <input class="c-input" id="del-confirm" placeholder={s.full_name} style="max-width:360px" />
+          <button class="c-btn c-btn-danger" data-act="eliminar">Eliminar</button>
+        </div>
+        <p class="c-err" data-e="confirm"></p>
+      </section>
+    </>
+  )}
+</CoachShell>
+
+<style>
+  .ptabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--card);
+    scrollbar-width: none;
+  }
+  .ptabs a {
+    flex: none;
+    padding: 10px 16px;
+    border-radius: 999px;
+    color: var(--mute);
+    font: 600 14px/1 var(--font-sans);
+    text-decoration: none;
+  }
+  .ptabs a[aria-current="page"] {
+    background: var(--lime);
+    color: #0d0d0d;
+  }
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .kpis {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .kpis b {
+    font: 400 2.8rem/0.9 var(--disp);
+    font-variation-settings: "wdth" 75;
+    font-variant-numeric: tabular-nums;
+  }
+  .kpis small {
+    font-size: 1rem;
+    color: var(--mute);
+  }
+  .dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    margin: 0;
+    font-size: 14px;
+  }
+  .dl dt {
+    color: var(--mute);
+  }
+  .dl dd {
+    margin: 0;
+  }
+  .plan-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+  }
+  .rx {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+  .rx li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--card2);
+  }
+  .rx li .c-btn {
+    margin-left: auto;
+    min-height: 34px;
+  }
+  .parq {
+    margin: 0;
+    padding-left: 20px;
+    display: grid;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .parq li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .eq {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    font-size: 14px;
+  }
+  .eq label,
+  label.eq {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .eq input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--lime);
+  }
+  .danger {
+    border-color: rgba(255, 122, 92, 0.4);
+  }
+  .cred {
+    margin: 0;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--card2);
+    color: var(--lime);
+    font-weight: 700;
+  }
+</style>
+
+<script>
+  const id = location.pathname.split("/").filter(Boolean).at(-1)!;
+  const api = async (body: Record<string, unknown>) => {
+    const res = await fetch("/api/coach/students", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id, ...body }) }).catch(() => null);
+    return res ? ((await res.json()) as { ok: boolean; errors?: Record<string, string>; tempPassword?: string; planUnpublished?: boolean }) : { ok: false, errors: { form: "Sin conexión." } };
+  };
+  const showErrs = (scope: HTMLElement, errs: Record<string, string>) => {
+    scope.querySelectorAll<HTMLElement>("[data-e]").forEach((e) => (e.textContent = ""));
+    for (const [k, msg] of Object.entries(errs)) {
+      const key = k.split(".").at(-1)!;
+      const el = scope.querySelector<HTMLElement>(`[data-e="${key}"]`) ?? scope.querySelector<HTMLElement>('[data-e="form"]');
+      if (el) el.textContent = msg;
+    }
+  };
+
+  document.querySelectorAll<HTMLFormElement>("form[data-op]").forEach((form) =>
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const op = form.dataset.op!;
+      const fd = new FormData(form);
+      const data: Record<string, unknown> = {};
+      if (op === "salud") {
+        data.parq = [0, 1, 2, 3, 4, 5, 6].map((i) => Number(fd.get(`parq.${i}`) ?? 0));
+        for (const k of ["injuries", "surgeries", "conditions", "medications"]) data[k] = fd.get(k);
+      } else {
+        for (const [k, v] of fd.entries()) {
+          if (k === "home_equipment") ((data.home_equipment ??= []) as unknown[]).push(v);
+          else data[k] = v;
+        }
+        if (op === "objetivo") {
+          data.home_equipment ??= [];
+          data.smoker = fd.get("smoker") ? 1 : 0;
+        }
+      }
+      const btn = form.querySelector<HTMLButtonElement>("button:not([type=button])");
+      if (btn) btn.disabled = true;
+      const r = await api({ op, data });
+      if (btn) btn.disabled = false;
+      if (r.ok) {
+        if (r.planUnpublished) alertBox(form, "Ojo: un plan de alimentación volvió a borrador porque ya no es seguro con esta restricción.");
+        else location.reload();
+      } else showErrs(form, r.errors ?? {});
+    }),
+  );
+  const alertBox = (form: HTMLElement, msg: string) => {
+    const el = form.querySelector<HTMLElement>('[data-e="form"]');
+    if (el) el.textContent = msg;
+    setTimeout(() => location.reload(), 2500);
+  };
+
+  document.querySelectorAll<HTMLButtonElement>("[data-rm]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      b.disabled = true;
+      const r = await api({ op: "quitar_restriccion", restriction_id: b.dataset.rm });
+      if (r.ok) location.reload();
+    }),
+  );
+
+  document.querySelectorAll<HTMLButtonElement>("button[data-act]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const act = b.dataset.act!;
+      const scope = b.closest("section")!;
+      b.disabled = true;
+      const body: Record<string, unknown> =
+        act === "estado" ? { op: "estado", status: b.dataset.status } : act === "eliminar" ? { op: "eliminar", confirm: (document.getElementById("del-confirm") as unknown as HTMLInputElement).value } : { op: "clave" };
+      const r = await api(body);
+      b.disabled = false;
+      if (!r.ok) {
+        const el = scope.querySelector<HTMLElement>("[data-e]");
+        if (el) el.textContent = Object.values(r.errors ?? {})[0] ?? "No se pudo.";
+        return;
+      }
+      if (act === "eliminar") location.assign("/coach/estudiantes");
+      else if (act === "clave") {
+        const c = document.getElementById("cred")!;
+        c.hidden = false;
+        c.textContent = `Nueva clave temporal: ${r.tempPassword} (se muestra solo esta vez)`;
+      } else location.reload();
+    }),
+  );
+</script>
