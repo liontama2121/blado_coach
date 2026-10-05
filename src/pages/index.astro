@@ -611,29 +611,49 @@ const jsonLd = {
   .a-acc-item:not(.is-open) .a-acc-wa {
     visibility: hidden;
   }
+  /* Phones: static cards, all open, no motion at all. */
   @media (max-width: 760px) {
     .a-acc {
       flex-direction: column;
+      gap: 12px;
       height: auto;
     }
-    .a-acc-item {
-      flex: none;
-      height: 112px;
-      transition: height 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+    .a-acc-item,
     .a-acc-item.is-open {
       flex: none;
-      height: 400px;
+      height: auto;
+      min-height: 360px;
+      display: flex;
+      align-items: flex-end;
+      cursor: default;
+      transition: none;
+    }
+    .a-acc-item img,
+    .a-acc-item.is-open img {
+      filter: grayscale(0.1) brightness(0.7);
+      transform: none;
+      transition: none;
     }
     .a-acc-copy {
-      padding: 20px;
+      position: relative;
+      inset: auto;
+      width: 100%;
+      padding: 120px 20px 20px;
+    }
+    .a-acc-more,
+    .a-acc-item.is-open .a-acc-more {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      transition: none;
+    }
+    .a-acc-item:not(.is-open) .a-acc-wa {
+      visibility: visible;
     }
     .a-h3 {
       font-size: 2.6rem;
     }
     .a-acc-wa {
       width: 100%;
-      justify-content: center;
     }
   }
 
@@ -745,7 +765,14 @@ const jsonLd = {
   }
 
   // Accordion: keyboard/tap opens an item.
+  // Phones show the three cards static and open, so the accordion only runs on wide screens.
+  const wide = matchMedia("(min-width: 761px)");
   document.querySelectorAll<HTMLElement>(".a-acc-item").forEach((li, _, all) => {
+    if (!wide.matches) {
+      li.removeAttribute("tabindex");
+      li.removeAttribute("aria-expanded");
+      return;
+    }
     const open = () =>
       all.forEach((x) => {
         x.classList.toggle("is-open", x === li);
